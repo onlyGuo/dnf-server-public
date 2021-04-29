@@ -41,15 +41,19 @@ aliyun:
     endpoint: 这里不用管，预留，后续制作全自动更新版本时可能用得上
     bucket-name: 这里不用管，预留，后续制作全自动更新版本时可能用得上
 ````
+
 4. 生成独属于自己的公私钥（长度:2048bit 格式:PKCS#8）,可以在这里在线生成：http://www.metools.info/code/c80.html 如下图:
    > 为什么不把公私钥直接内置到程序中而是强制你手动生成？因为公私钥时DOF服务端与客户端通信加密的基础，每个人用不同的密钥可以提高安全性，若都用统一的密钥，那么别有用心的人稍微使点手段就可以跳过密码验证直接登录你的私服，导致玩家账号密码形同虚设。
 
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa.png)
+
 5. 用`notpad++`或`vs code`等一类的工具将公钥保存为`publickey.pem`并上传到服务器game目录。
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pub.png)
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pub-upload.png)
+
 6. 复制公钥内容（不要复制`-----BEGIN PUBLIC KEY-----`和`-----END PUBLIC KEY-----`这一类的头尾标识）到文件`src/main/resources/private.key` 替换里面的content，如下如:
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pri.png)
+
 7. 在根目录下执行cmd命令`mvn clean package`进行编译（初次编译会下载各种依赖包，会很慢，约30分钟，耐心等待，网络越好速度越快，若编译失败可以使用‘你懂得的上网方案’）。
 
 8. 观察日志出现如下内容标识编译完成，编译成品为：`target/dnf-server-0.0.1-SNAPSHOT.jar`
