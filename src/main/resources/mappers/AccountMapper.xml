@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aiyi.game.dnfserver.dao.AccountDao">
+
+    <!-- 返回体映射 -->
+    <resultMap id="ACCOUNT_RM_VO" type="com.aiyi.game.dnfserver.entity.AccountVO" >
+        <id column="UID" property="uid" jdbcType="INTEGER" />
+        <result column="accountname" property="accountname" jdbcType="VARCHAR" />
+        <result column="password" property="password" jdbcType="VARCHAR" />
+        <result column="qq" property="qq" jdbcType="VARCHAR" />
+        <result column="vip" property="vip" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <!--添加/查询字段公共体-->
+    <sql id="BASE_FIELD">
+        UID, accountname, password, qq, vip
+    </sql>
+
+    <!-- 根据账号密码查询用户 -->
+    <select id="getByAccountAndPswd" resultMap="ACCOUNT_RM_VO">
+        SELECT
+            <include refid="BASE_FIELD"/>
+        FROM
+            d_taiwan.accounts
+        WHERE
+            accountname = #{account} AND password = #{password}
+    </select>
+
+    <select id="selectByAccount" resultType="java.lang.Integer">
+        SELECT UID FROM d_taiwan.accounts WHERE accountname = #{name}
+    </select>
+</mapper>
+
