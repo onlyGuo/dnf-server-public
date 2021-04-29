@@ -1,39 +1,68 @@
 # dnf-client-server
 
 #### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+这是一个脱敏后的DOF后台管理系统，为了保证作者自身的服务安全，部分敏感数据不对外纰漏，而通过远程静默授权的方式从作者服务器读取。
+除此之外所有代码均可随意查看或修改。
 
 #### 软件架构
-软件架构说明
+spring-boot
 
 
-#### 安装教程
+#### 安装过程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. 安装JDK1.8环境和Maven编译工具并配置环境变量
+2. 拉取本仓库代码。
+3. 修改你的数据库配置和短信配置：`src/main/resources/application.yml`:
+```` yml
+server:
+  port: 9001
+spring:
+  application:
+    name: DNF Service Web Application
+  datasource:
+    url: jdbc:mysql://这里改成你的数据库地址:端口号?useUnicode=true&characterEncoding=latin1
+    password: 这里填写你的数据库密码
+    username: 这里填写你的数据库账号
+    driver-class-name: com.mysql.jdbc.Driver
+  freemarker:
+    suffix: .ftl
+mybatis:
+  mapper-locations: classpath*:mappers/*.xml
+  type-aliases-package: com.aiyi.game.dnfserver.entity
+logging:
+  file: logs/dnf.log
+  level:
+    com.aiyi: debug
+
+aliyun:
+  access-key-id: 这里填写你从阿里云申请的access-key-id 否则注册时无法发送短信
+  access-secret: 这里填写你从阿里云申请的access-secret 否则注册时无法发送短信
+  oss:
+    endpoint: 这里不用管，预留，后续制作全自动更新版本时可能用得上
+    bucket-name: 这里不用管，预留，后续制作全自动更新版本时可能用得上
+````
+4. 生成独属于自己的公私钥（长度:2048bit 格式:PKCS#8）,可以在这里在线生成：http://www.metools.info/code/c80.html 如下图:
+   > 为什么不把公私钥直接内置到程序中而是强制你手动生成？因为公私钥时DOF服务端与客户端通信加密的基础，每个人用不同的密钥可以提高安全性，若都用统一的密钥，那么别有用心的人稍微使点手段就可以跳过密码验证直接登录你的私服，导致玩家账号密码形同虚设。
+
+5. 用`notpad++`或`vs code`等一类的工具将公钥保存为`publickey.pem`并上传到服务器game目录。
+6. 复制公钥内容（不要复制`-----BEGIN PUBLIC KEY-----`和`-----END PUBLIC KEY-----`这一类的头尾标识）到文件`src/main/resources/private.key` 替换里面的content，如下如:
+
+7. 在根目录下执行cmd命令`mvn clean package`进行编译（初次编译会下载各种依赖包，会很慢，约30分钟，耐心等待，网络越好速度越快，若编译失败可以使用‘你懂得的上网方案’）。
+
+8. 观察日志出现如下内容标识编译完成，编译成品为：`target/dnf-server-0.0.1-SNAPSHOT.jar`
+````
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.395 s
+[INFO] Finished at: 2021-04-29T16:14:55+08:00
+[INFO] ------------------------------------------------------------------------
+````
+9. 服务器安装JDK8环境，将`target/dnf-server-0.0.1-SNAPSHOT.jar`上传至服务器
+10. 在服务器jar包目录下执行: `nohup java -jar dnf-server-0.0.1-SNAPSHOT.jar &`
 
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+1. 启动后在当前目录执行`tail -f logs/dnf.log`可以查看日志以便于排错。
+2. 结束本服务进程执行`pkill java`
+3. 联系QQ：719348277
