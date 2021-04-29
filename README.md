@@ -51,7 +51,7 @@ aliyun:
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pub.png)
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pub-upload.png)
 
-6. 复制公钥内容（不要复制`-----BEGIN PUBLIC KEY-----`和`-----END PUBLIC KEY-----`这一类的头尾标识）到文件`src/main/resources/private.key` 替换里面的content，如下如:
+6. 复制私钥内容（不要复制`-----BEGIN PRIVATE KEY-----`和`-----END PRIVATE KEY-----`这一类的头尾标识）到文件`src/main/resources/private.key` 替换里面的content，如下如:
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa-pri.png)
 
 7. 在根目录下执行cmd命令`mvn clean package`进行编译（初次编译会下载各种依赖包，会很慢，约30分钟，耐心等待，网络越好速度越快，若编译失败可以使用‘你懂得的上网方案’）。
