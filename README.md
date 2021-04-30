@@ -44,6 +44,7 @@ aliyun:
     bucket-name: 这里不用管，预留，后续制作全自动更新版本时可能用得上
 ````
 4. 编辑`/src/main/java/com/aiyi/game/dnfserver/service/rmt/RmtService.java`, 修改第67、68设置你的管理员账号密码，默认都是admin，请务必改为自己的，如下图:
+
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/default-admin.png)
 
 
