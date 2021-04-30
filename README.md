@@ -46,6 +46,7 @@ aliyun:
 4. 编辑`/src/main/java/com/aiyi/game/dnfserver/service/rmt/RmtService.java`, 修改第67、68设置你的管理员账号密码，默认都是admin，请务必改为自己的，如下图:
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/default-admin.png)
 
+
 5. 生成独属于自己的公私钥（长度:2048bit 格式:PKCS#8）,可以在这里在线生成：http://www.metools.info/code/c80.html 如下图:
 
    -- 为什么不把公私钥直接内置到程序中而是强制你手动生成？因为公私钥时DOF服务端与客户端通信加密的基础，每个人用不同的密钥可以提高安全性，若都用统一的密钥，那么别有用心的人稍微使点手段就可以跳过密码验证直接登录你的私服，导致玩家账号密码形同虚设。
