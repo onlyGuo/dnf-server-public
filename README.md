@@ -48,9 +48,11 @@ aliyun:
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/default-admin.png)
 
 
-5. 生成独属于自己的公私钥（长度:2048bit 格式:PKCS#8）,可以在这里在线生成：http://www.metools.info/code/c80.html 如下图:
+5. 生成独属于自己的公私钥（长度:`2048bit` 格式:`PKCS#8`）,可以在这里在线生成：http://www.metools.info/code/c80.html 如下图:
 
    -- 为什么不把公私钥直接内置到程序中而是强制你手动生成？因为公私钥时DOF服务端与客户端通信加密的基础，每个人用不同的密钥可以提高安全性，若都用统一的密钥，那么别有用心的人稍微使点手段就可以跳过密码验证直接登录你的私服，导致玩家账号密码形同虚设。
+   
+  注意： 如果登录游戏卡在频道页面尝试多次依然无法进入的话，则将格式`PKCS#8`换成`PKCS#1`重新生成。
    
 ![rsa](https://github.com/onlyGuo/dnf-server-public/raw/main/doc/rsa.png)
 
