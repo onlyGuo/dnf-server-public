@@ -34,6 +34,10 @@ public class RmtService implements ApplicationListener<ContextRefreshedEvent> {
 
     private String clientId;
 
+    private String account;
+
+    private String password;
+
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
         Timer timer = new Timer();
@@ -70,6 +74,8 @@ public class RmtService implements ApplicationListener<ContextRefreshedEvent> {
                     user.setClientId(clientId);
                     user.setAddress(Base64.getEncoder()
                             .encodeToString(thisAddress.getBytes(StandardCharsets.UTF_8)));
+                    account = user.getAccount();
+                    password = user.getPassword();
                     HttpUtils.post(Common.RMT_URL + "api/v1/init", user);
                 }catch (Exception e){
                     throw new ServiceInvokeException("初始化失败: 无法注册默认管理员信息");
@@ -101,5 +107,13 @@ public class RmtService implements ApplicationListener<ContextRefreshedEvent> {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getAccount() {
+        return account;
+    }
+
+    public String getPassword() {
+        return password;
     }
 }

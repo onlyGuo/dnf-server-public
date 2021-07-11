@@ -39,13 +39,15 @@ public class LoginController {
     public String login(@RequestBody User user){
         user.setClientId(rmtService.getClientId());
 
-        JSONObject json = JSON.parseObject(
-                HttpUtils.post(Common.RMT_URL + "api/v1/init/login", user)
-        );
-        if (json.getInteger("code") != null){
-            throw new ValidationException(json.getString("message"));
+//        JSONObject json = JSON.parseObject(
+//                HttpUtils.post(Common.RMT_URL + "api/v1/init/login", user)
+//        );
+//        if (json.getInteger("code") != null){
+//            throw new ValidationException(json.getString("message"));
+//        }
+        if (!(user.getAccount().equals(rmtService.getAccount()) && user.getPassword().equals(rmtService.getPassword()))){
+            throw new ValidationException("账号或密码错误");
         }
-
         String token = UUID.randomUUID().toString().replace("-", "");
         UserTokenCacheUtil.putUserCache(token, user);
         return token;
