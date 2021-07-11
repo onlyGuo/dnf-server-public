@@ -1,10 +1,16 @@
 package com.aiyi.game.dnfserver.utils;
 
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+
 import javax.crypto.Cipher;
-import java.io.File;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -86,6 +92,34 @@ public class RSATool {
             PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(keyBytes);
             KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORTHM);
             Key privateKey = keyFactory.generatePrivate(pkcs8EncodedKeySpec);
+
+            //对数据加密
+            Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
+            cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+
+            return cipher.doFinal(data);
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    /**
+     * 用私钥加密(PKCS1)
+     * @param data	加密数据
+     * @param key	密钥
+     * @return
+     * @throws Exception
+     */
+    public static byte[] encryptByPrivateKey(byte[] data,byte[] key){
+        try{
+            //取私钥
+            PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(key)));
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+            Object object = pemParser.readObject();
+            KeyPair kp = converter.getKeyPair((PEMKeyPair) object);
+            PrivateKey privateKey = kp.getPrivate();
+            KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORTHM);
 
             //对数据加密
             Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
