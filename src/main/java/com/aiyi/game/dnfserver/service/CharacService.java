@@ -32,4 +32,11 @@ public interface CharacService {
      * @return
      */
     List<CharacInfo> list(String account);
+
+    /**
+     * 更新角色信息
+     * @param info
+     *      角色信息
+     */
+    void update(CharacInfo info);
 }

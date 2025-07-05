@@ -4,11 +4,9 @@ import com.aiyi.core.beans.ResultPage;
 import com.aiyi.game.dnfserver.conf.NoLogin;
 import com.aiyi.game.dnfserver.entity.CharacInfo;
 import com.aiyi.game.dnfserver.service.CharacService;
+import com.aiyi.game.dnfserver.utils.CharsetUtil;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -28,13 +26,13 @@ public class CharacInfoController {
     private CharacService characService;
 
     @GetMapping
-    public ResultPage<CharacInfo> list(Integer levMin, Integer levMax, Integer job,
+    public ResultPage<CharacInfo> list(Integer minLev, Integer maxLevel, Integer job,
                                        String name, String account, Integer page, Integer pageSize){
         if (null == page) page = 1;
         if (null == pageSize) pageSize = 10;
-        ResultPage<CharacInfo> list = characService.list(levMin, levMax, job, name, account, page, pageSize);
+        ResultPage<CharacInfo> list = characService.list(minLev, maxLevel, job, name, account, page, pageSize);
         for (CharacInfo info: list.getList()){
-            ChinaseUtil.toSimple(info);
+            CharsetUtil.latin12utf8(info);
         }
         return list;
     }
@@ -49,6 +47,11 @@ public class CharacInfoController {
     @NoLogin
     public List<CharacInfo> listByAccount(@PathVariable String account){
         return characService.list(account);
+    }
+
+    @PutMapping
+    public void update(@RequestBody CharacInfo info){
+        characService.update(info);
     }
 
 }

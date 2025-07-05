@@ -1,5 +1,6 @@
 package com.aiyi.game.dnfserver.service.impl;
 
+import com.aiyi.core.beans.LeftJoin;
 import com.aiyi.core.beans.Method;
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.core.beans.WherePrams;
@@ -10,15 +11,13 @@ import com.aiyi.game.dnfserver.dao.CharacInfoDao;
 import com.aiyi.game.dnfserver.entity.AccountVO;
 import com.aiyi.game.dnfserver.entity.CharacInfo;
 import com.aiyi.game.dnfserver.service.CharacService;
+import com.aiyi.game.dnfserver.utils.CharsetUtil;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -60,7 +59,18 @@ public class CharacServiceImpl implements CharacService {
                 where.and(CharacInfo::getMid, C.IN, ids);
             }
         }
-        return characInfoDao.list(where, page, pageSize);
+        ResultPage<CharacInfo> list = characInfoDao.list(where, page, pageSize);
+        if (!list.getList().isEmpty()){
+            Set<Integer> collect = list.getList().stream().map(CharacInfo::getMid).collect(Collectors.toSet());
+            Map<Integer, AccountVO> mapper = accountVODao.list(Method.where(AccountVO::getUid, C.IN, collect.toArray()))
+                    .stream().collect(Collectors.toMap(AccountVO::getUid, a -> a));
+            list.getList().forEach(characInfo -> {
+                if (mapper.containsKey(characInfo.getMid())){
+                    characInfo.setAccountname(mapper.get(characInfo.getMid()).getAccountname());
+                }
+            });
+        }
+        return list;
     }
 
     @Override
@@ -78,5 +88,37 @@ public class CharacServiceImpl implements CharacService {
             ChinaseUtil.toSimple(characInfo);
         }
         return list;
+    }
+
+    @Override
+    public void update(CharacInfo info) {
+        CharacInfo characInfo = characInfoDao.get(info.getCharacNo());
+        if (null == characInfo){
+            return;
+        }
+        // 三速
+        characInfo.setAttackSpeed(info.getAttackSpeed());
+        characInfo.setCastSpeed(info.getCastSpeed());
+        characInfo.setMoveSpeed(info.getMoveSpeed());
+
+        // 疲劳
+        characInfo.setFatigue(info.getFatigue());
+
+        // 红蓝
+        characInfo.setMaxHp(info.getMaxHp());
+        characInfo.setMaxMp(info.getMaxMp());
+
+        // 伤害
+        characInfo.setMagAttack(info.getMagAttack());
+        characInfo.setMagDefense(info.getMagDefense());
+        characInfo.setPhyAttack(info.getPhyAttack());
+        characInfo.setPhyDefense(info.getPhyDefense());
+
+        // 硬直、跳跃
+        characInfo.setHitRecovery(info.getHitRecovery());
+        characInfo.setJump(info.getJump());
+        characInfo.setCharacName(CharsetUtil.utf82latin1(CharsetUtil.latin12utf8(characInfo.getCharacName())));
+
+        characInfoDao.update(characInfo);
     }
 }

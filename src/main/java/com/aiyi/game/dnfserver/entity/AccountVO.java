@@ -36,6 +36,11 @@ public class AccountVO extends PO {
      */
     private String vip;
 
+    private boolean admin;
+
+    @FieldName(name = "parent_uid")
+    private int parentUid;
+
     @TempField
     private String valicode;
 
@@ -72,6 +77,9 @@ public class AccountVO extends PO {
 
     @TempField
     private int cera;
+
+    @TempField
+    private String validationIndex;
 
     public Integer getUid() {
         return uid;
@@ -167,5 +175,29 @@ public class AccountVO extends PO {
 
     public void setCera(int cera) {
         this.cera = cera;
+    }
+
+    public String getValidationIndex() {
+        return validationIndex;
+    }
+
+    public void setValidationIndex(String validationIndex) {
+        this.validationIndex = validationIndex;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public int getParentUid() {
+        return parentUid;
+    }
+
+    public void setParentUid(int parentUid) {
+        this.parentUid = parentUid;
     }
 }

@@ -4,9 +4,9 @@ spring:
   application:
     name: DNF Service Web Application
   datasource:
-    url: jdbc:mysql://这里改成你的数据库地址:端口号?useUnicode=true&characterEncoding=latin1
-    password: 这里填写你的数据库密码
-    username: 这里填写你的数据库账号
+    url: jdbc:mysql://192.168.1.26:3000?useUnicode=true&characterEncoding=latin1&autoReconnect=true
+    password: guoshengkai373
+    username: root
     driver-class-name: com.mysql.jdbc.Driver
   freemarker:
     suffix: .ftl

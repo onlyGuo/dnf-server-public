@@ -2,6 +2,7 @@ package com.aiyi.game.dnfserver.service.impl;
 
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.core.exception.ValidationException;
+import com.aiyi.core.util.thread.ThreadUtil;
 import com.aiyi.game.dnfserver.conf.CommonAttr;
 import com.aiyi.game.dnfserver.dao.AccountDao;
 import com.aiyi.game.dnfserver.dao.AccountVODao;
@@ -19,6 +20,7 @@ import javax.annotation.Resource;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户业务操作类
@@ -44,13 +46,23 @@ public class AccountServiceImpl implements AccountService {
                 return "{\"message\":\"用户名或密码错误\"}";
             }
         }
+
+
+        // 得到待加密的用户标识
+//        String head = "0001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+//        String end = "010101010101010101010101010101010101010101010101010101010101010155914510010403030101";
+//        String data = String.format("%10x", account.getUid()) + end;
+
+
         // 得到待加密的用户标识
         String data = String.format("%08x0101010101010101010101010101010101010101010101010101010101010101559145100" +
                 "10403030101", account.getUid());
+        data = String2Hex.convertHexToString(data);
         // 加密计算出用户授权Key
         String token = null;
         try {
-            String privateKey = new String(MinFieldUtil.readResource("private.key")).replace("\r", "")
+            String privateKey = new String(MinFieldUtil.readResource("private.key"))
+                    .replace("\r", "")
                     .replace("\n", "");
             byte[] resultByte = RSATool.encryptByPrivateKey(data.getBytes(), privateKey);
             token = Base64.getEncoder().encodeToString(resultByte);
@@ -64,15 +76,20 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void register(AccountVO accountVO) {
-        if (null == accountVO.getAccountname() || accountVO.getAccountname().trim().length() == 0){
+        if (null == accountVO.getAccountname() || accountVO.getAccountname().trim().isEmpty()){
             throw new ValidationException("用户名不能为空");
         }
-        if (null == accountVO.getPassword() || accountVO.getPassword().length() == 0){
+        if (null == accountVO.getPassword() || accountVO.getPassword().isEmpty()){
             throw new ValidationException("密码不能为空");
         }
 
-        Integer sms = CacheUtil.get(Key.as(CommonAttr.CACHE.VALIDATION_CODE, "SMS", "Register", accountVO.getAccountname()), Integer.class);
-        if (null == sms || !sms.toString().equals(accountVO.getSmsCode())){
+//        Integer sms = CacheUtil.get(Key.as(CommonAttr.CACHE.VALIDATION_CODE, "SMS", "Register", accountVO.getAccountname()), Integer.class);
+//        if (null == sms || !sms.toString().equals(accountVO.getSmsCode())){
+//            throw new ValidationException("验证码不正确或已过期");
+//        }
+
+        String code = CacheUtil.get(Key.as(CommonAttr.CACHE.VALIDATION_CODE, accountVO.getValidationIndex()), String.class);
+        if (null == code || !code.equals(accountVO.getValicode())){
             throw new ValidationException("验证码不正确或已过期");
         }
 
@@ -116,10 +133,21 @@ public class AccountServiceImpl implements AccountService {
     public ResultPage<AccountVO> list(String account, Boolean loginStatus,
                                       Date lastLoginDate, int page,
                                       int pageSize) {
-        List<AccountVO> list = accountDao.list(account, loginStatus,
-                lastLoginDate, (page - 1) * pageSize, pageSize);
-        int count = accountDao.count(account, loginStatus, lastLoginDate,
-                page, pageSize);
+        List<AccountVO> list = null;
+        int count = 0;
+        int userId = Integer.parseInt(ThreadUtil.getUserId() + "");
+        AccountVO accountVO = accountVODao.get(userId);
+        if (accountVO.isAdmin()){
+            list =  accountDao.listAll(account, loginStatus,
+                    lastLoginDate, (page - 1) * pageSize, pageSize);
+            count = accountDao.countAll(account, loginStatus, lastLoginDate,
+                    page, pageSize);
+        }else{
+            list = accountDao.list(account, loginStatus,
+                    lastLoginDate, accountVO.getUid(), (page - 1) * pageSize, pageSize);
+            count = accountDao.count(account, loginStatus, lastLoginDate, accountVO.getUid(),
+                    page, pageSize);
+        }
         return new ResultPage<>(count, page, pageSize, list);
 
     }

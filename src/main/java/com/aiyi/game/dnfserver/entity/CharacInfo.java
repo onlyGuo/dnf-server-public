@@ -3,6 +3,7 @@ package com.aiyi.game.dnfserver.entity;
 import com.aiyi.core.annotation.po.FieldName;
 import com.aiyi.core.annotation.po.ID;
 import com.aiyi.core.annotation.po.TableName;
+import com.aiyi.core.annotation.po.TempField;
 import com.aiyi.core.beans.PO;
 import com.aiyi.game.dnfserver.utils.Simple;
 
@@ -111,7 +112,13 @@ public class CharacInfo extends PO {
     private int castSpeed;
 
     /**
-     * 命中率或回避率
+     * 移速
+     */
+    @FieldName(name = "move_speed")
+    private int moveSpeed;
+
+    /**
+     * 硬直
      */
     @FieldName(name = "hit_recovery")
     private int hitRecovery;
@@ -132,6 +139,9 @@ public class CharacInfo extends PO {
      */
     @FieldName(name = "create_time")
     private Date createTime = new Date();
+
+    @TempField
+    private String accountname;
 
     public int getCharacNo() {
         return characNo;
@@ -301,4 +311,19 @@ public class CharacInfo extends PO {
         this.createTime = createTime;
     }
 
+    public String getAccountname() {
+        return accountname;
+    }
+
+    public void setAccountname(String accountname) {
+        this.accountname = accountname;
+    }
+
+    public int getMoveSpeed() {
+        return moveSpeed;
+    }
+
+    public void setMoveSpeed(int moveSpeed) {
+        this.moveSpeed = moveSpeed;
+    }
 }

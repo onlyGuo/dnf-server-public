@@ -73,8 +73,9 @@ public class ChinaseUtil {
      * @param str
      */
     public static String toTraditional(String str){
-        String traditional = ZhConverterUtil.toTraditional(str);
-        return convertCharsetUTF8(traditional);
+//        String traditional = ZhConverterUtil.toTraditional(str);
+//        return traditional;
+        return convertCharsetUTF8(str);
     }
 
 

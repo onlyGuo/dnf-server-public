@@ -58,6 +58,9 @@ public class RequestThreadFilterConf implements HandlerInterceptor {
                 }
             }
         }
+        if (null != loginUser){
+            ThreadUtil.setUserId(Long.parseLong(loginUser.getId() + ""));
+        }
         String requestId = request.getHeader("requestId");
         if (StringUtils.isEmpty(requestId)){
             requestId = UUID.randomUUID().toString().toUpperCase();
