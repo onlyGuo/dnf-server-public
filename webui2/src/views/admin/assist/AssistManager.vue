@@ -96,7 +96,7 @@ const HOTKEY_PREFIX_OPTIONS = [
   { label: 'Ctrl', value: 'Ctrl' },
   { label: 'Shift', value: 'Shift' },
   { label: 'Alt', value: 'Alt' }
-] as const;
+];
 
 const PICK_MODE_OPTIONS = [
   { label: '0 - 关闭', value: 0 },
@@ -104,7 +104,7 @@ const PICK_MODE_OPTIONS = [
   { label: '2 - 模式2', value: 2 },
   { label: '3 - 模式3', value: 3 },
   { label: '4 - 模式4', value: 4 }
-] as const;
+];
 
 const TURN_CARD_OPTIONS = [
   { label: '0 - 关闭', value: 0 },
@@ -112,7 +112,7 @@ const TURN_CARD_OPTIONS = [
   { label: '2 - 第2张', value: 2 },
   { label: '3 - 第3张', value: 3 },
   { label: '4 - 第4张', value: 4 }
-] as const;
+];
 
 const ensureFixedArray = (arr: any, len: number, defaultFactory: (i: number) => any) => {
   const next = Array.isArray(arr) ? [...arr] : [];

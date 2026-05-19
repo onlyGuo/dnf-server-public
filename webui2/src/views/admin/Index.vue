@@ -82,7 +82,7 @@ onMounted(() => {
 });
 
 
-const onClickMenuItem = (item: any) => {
+const onClickMenuItem = (item: any, _ev?: Event) => {
   const tempBreadcrumbList = ['系统后台'] as string[];
   const itemObj = searchByFullPath(item, menus.value, tempBreadcrumbList);
   if (!itemObj){
@@ -246,7 +246,7 @@ Request.get('api/v1/account?page=1&pageSize=1')
         </div>
       </a-layout-header>
       <a-layout-content class="layout-content">
-        <a-tabs class="layout-tabs" hide-content closable editable @delete="onDeleteTab" v-model:active-key="selectedKeys[0]" @change="onClickMenuItem">
+        <a-tabs class="layout-tabs" hide-content closable editable @delete="onDeleteTab" v-model:active-key="selectedKeys[0]" @change="(key: string | number, _ev: Event) => onClickMenuItem(String(key))">
           <a-tab-pane v-for="page in historyPages" :key="page.path" :title="page.meta.title" :closable="page.path !== selectedKeys[0]">
           </a-tab-pane>
         </a-tabs>

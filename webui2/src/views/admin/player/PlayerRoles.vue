@@ -12,8 +12,8 @@ const searchForm = reactive({
 	account: "",
 	name: "",
 	job: "",
-	minLev: null,
-	maxLev: null
+	minLev: undefined as number | undefined,
+	maxLev: undefined as number | undefined
 });
 
 const pageResult = ref({
@@ -40,12 +40,12 @@ const mailForm = ref({
 	sendCharacName: "DNF Manageer",
 	receiveCharacNo: 0,
 	item: null as any,
-	itemId: null as number | null,
+	itemId: undefined as number | undefined,
 	addInfo: 1,
 	upgrade: 0,
 	seperateUpgrade: 0,
 	sealFlag: false,
-	amplifyOption: null as number | null,
+	amplifyOption: undefined as number | undefined,
 	amplifyValue: 0,
 	gold: 0
 });
@@ -214,12 +214,12 @@ const openSendMail = (record: any) => {
 		sendCharacName: "DNF Manageer",
 		receiveCharacNo: record?.characNo ?? 0,
 		item: null,
-		itemId: null,
+		itemId: undefined,
 		addInfo: 1,
 		upgrade: 0,
 		seperateUpgrade: 0,
 		sealFlag: false,
-		amplifyOption: null,
+		amplifyOption: undefined,
 		amplifyValue: 0,
 		gold: 0
 	};

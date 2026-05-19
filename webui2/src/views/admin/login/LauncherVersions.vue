@@ -183,7 +183,7 @@ onMounted(loadList);
     </a-card>
 
     <a-modal v-model:visible="editVisible" :title="isEdit ? '编辑版本' : '新增版本'" :ok-loading="saving" @ok="save">
-      <a-form layout="vertical">
+      <a-form layout="vertical" :model="form">
         <a-form-item label="版本号">
           <a-input v-model="form.version" placeholder="例如 1.0.1" />
         </a-form-item>
