@@ -200,8 +200,9 @@ public class PvfController {
     private void ensurePvfCache() {
         int size = PvfCache.getSize();
         if (0 == size) {
-            size = MinFieldUtil.getFileSizeKB(new File("Script.pvf").getAbsolutePath());
+            size = MinFieldUtil.getFileSizeKB(new File("data/Script.pvf").getAbsolutePath());
             PvfCache.setPvfSize(size);
+            System.out.println(PvfCache.getSize());
             List<Equipment> equipmentList = pvfManager.getEquipmentList();
             PvfCache.setEquipmentList(equipmentList);
             List<Stackable> stackableList = pvfManager.getStackableList();
