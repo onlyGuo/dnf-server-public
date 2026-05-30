@@ -74,29 +74,23 @@
 			<version>1.69</version>
 		</dependency>
 
-		<dependency>
-			<groupId>com.dnf.parser</groupId>
-			<artifactId>core</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/libs/dnf-parser-core-1.0.jar</systemPath>
-		</dependency>
+        <dependency>
+            <groupId>ink.icoding.dnf</groupId>
+            <artifactId>dnf-parser-core</artifactId>
+            <version>1.1</version>
+        </dependency>
 
-		<dependency>
-			<groupId>com.dnf.parser</groupId>
-			<artifactId>npk</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/libs/dnf-parser-npk-1.0.jar</systemPath>
-		</dependency>
+        <dependency>
+            <groupId>ink.icoding.dnf</groupId>
+            <artifactId>dnf-parser-pvf</artifactId>
+            <version>1.1</version>
+        </dependency>
 
-		<dependency>
-			<groupId>com.dnf.parser</groupId>
-			<artifactId>pvf</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/libs/dnf-parser-pvf-1.0.jar</systemPath>
-		</dependency>
+        <dependency>
+            <groupId>ink.icoding.dnf</groupId>
+            <artifactId>dnf-parser-npk</artifactId>
+            <version>1.1</version>
+        </dependency>
 
 		<dependency>
 			<groupId>cn.hutool</groupId>

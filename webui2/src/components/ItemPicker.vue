@@ -309,8 +309,8 @@ const rarityMap: Record<number, {label: string; color: string}> = {
 	1: {label: "高级", color: "#60a5fa"},
 	2: {label: "稀有", color: "#a78bfa"},
 	3: {label: "神器", color: "#ed0bf5"},
-	4: {label: "传说", color: "#f97316"},
-	5: {label: "史诗", color: "#facc15"},
+	4: {label: "史诗", color: "#fdb500"},
+	5: {label: "传说", color: "#fd0000"},
 	6: {label: "神话", color: "#ef4444"}
 };
 
@@ -405,6 +405,89 @@ const getJobText = (it: any) => {
   if (Array.isArray(it.usableJobsStr) && it.usableJobsStr.length) return it.usableJobsStr.join(' / ');
   return '';
 };
+
+const formatAttack = (val: any): string => {
+  if (val == null) return '';
+  if (Array.isArray(val)) return String(val[0] ?? '');
+  return String(val);
+};
+
+const formatSpeed = (val: any): string => {
+  if (val == null) return '';
+  return (Number(val) / 10).toFixed(1).replace(/\.0$/, '') + '%';
+};
+
+const hoverAttackRows = computed(() => {
+  const it = hoverItem.value;
+  if (!it) return [];
+  const rows: Array<{ label: string; value: string }> = [];
+  if ((it as any).physicalAttack != null) rows.push({ label: '物理攻击力', value: formatAttack((it as any).physicalAttack) });
+  if ((it as any).magicalAttack != null) rows.push({ label: '魔法攻击力', value: formatAttack((it as any).magicalAttack) });
+  if ((it as any).separateAttack != null) rows.push({ label: '独立攻击力', value: formatAttack((it as any).separateAttack) });
+  if ((it as any).physicalDefense != null) rows.push({ label: '物理防御力', value: formatAttack((it as any).physicalDefense) });
+  if ((it as any).magicalDefense != null) rows.push({ label: '魔法防御力', value: formatAttack((it as any).magicalDefense) });
+  if ((it as any).strength != null) rows.push({ label: '力量', value: String((it as any).strength) });
+  if ((it as any).intelligence != null) rows.push({ label: '智力', value: String((it as any).intelligence) });
+  if ((it as any).vitality != null) rows.push({ label: '体力', value: String((it as any).vitality) });
+  if ((it as any).spirit != null) rows.push({ label: '精神', value: String((it as any).spirit) });
+  if ((it as any).hpMax != null) rows.push({ label: 'HP最大值', value: String((it as any).hpMax) });
+  if ((it as any).mpMax != null) rows.push({ label: 'MP最大值', value: String((it as any).mpMax) });
+  if ((it as any).antiEvil != null) rows.push({ label: '抗魔值', value: String((it as any).antiEvil) });
+  return rows;
+});
+
+const hoverBonusRows = computed(() => {
+  const it = hoverItem.value;
+  if (!it) return [];
+  const rows: Array<{ label: string; value: string }> = [];
+  // 速度
+  if ((it as any).attackSpeed != null) rows.push({ label: '攻击速度', value: formatSpeed((it as any).attackSpeed) });
+  if ((it as any).castSpeed != null) rows.push({ label: '施放速度', value: formatSpeed((it as any).castSpeed) });
+  if ((it as any).moveSpeed != null) rows.push({ label: '移动速度', value: formatSpeed((it as any).moveSpeed) });
+  // 暴击
+  if ((it as any).physicalCriticalHit != null) rows.push({ label: '物理暴击率', value: String((it as any).physicalCriticalHit) + '%' });
+  if ((it as any).magicalCriticalHit != null) rows.push({ label: '魔法暴击率', value: String((it as any).magicalCriticalHit) + '%' });
+  // 命中/回避/硬直/跳跃
+  if ((it as any).hitRate != null) rows.push({ label: '命中率', value: String((it as any).hitRate) });
+  if ((it as any).dodge != null) rows.push({ label: '回避率', value: String((it as any).dodge) });
+  if ((it as any).hitRecovery != null) rows.push({ label: '硬直', value: String((it as any).hitRecovery) });
+  if ((it as any).jumpPower != null) rows.push({ label: '跳跃力', value: String((it as any).jumpPower) });
+  // 属性攻击
+  if ((it as any).fireElement != null) rows.push({ label: '火属性攻击', value: '' });
+  if ((it as any).waterElement != null) rows.push({ label: '冰属性攻击', value: '' });
+  if ((it as any).lightElement != null) rows.push({ label: '光属性攻击', value: '' });
+  if ((it as any).darkElement != null) rows.push({ label: '暗属性攻击', value: '' });
+  // 属性强化
+  if ((it as any).fireAttack != null) rows.push({ label: '火属性强化', value: String((it as any).fireAttack) });
+  if ((it as any).waterAttack != null) rows.push({ label: '冰属性强化', value: String((it as any).waterAttack) });
+  if ((it as any).lightAttack != null) rows.push({ label: '光属性强化', value: String((it as any).lightAttack) });
+  if ((it as any).darkAttack != null) rows.push({ label: '暗属性强化', value: String((it as any).darkAttack) });
+  if ((it as any).allElementalAttack != null) rows.push({ label: '全属性强化', value: String((it as any).allElementalAttack) });
+  // 属性抗性
+  if ((it as any).fireResistance != null) rows.push({ label: '火属性抗性', value: String((it as any).fireResistance) });
+  if ((it as any).waterResistance != null) rows.push({ label: '冰属性抗性', value: String((it as any).waterResistance) });
+  if ((it as any).lightResistance != null) rows.push({ label: '光属性抗性', value: String((it as any).lightResistance) });
+  if ((it as any).darkResistance != null) rows.push({ label: '暗属性抗性', value: String((it as any).darkResistance) });
+  if ((it as any).allElementalResistance != null) rows.push({ label: '所有属性抗性', value: String((it as any).allElementalResistance) });
+  // 异常状态抗性
+  if ((it as any).blindResistance != null) rows.push({ label: '失明抗性', value: String((it as any).blindResistance) });
+  if ((it as any).lightningResistance != null) rows.push({ label: '感电抗性', value: String((it as any).lightningResistance) });
+  if ((it as any).burnResistance != null) rows.push({ label: '灼伤抗性', value: String((it as any).burnResistance) });
+  if ((it as any).freezeResistance != null) rows.push({ label: '冰冻抗性', value: String((it as any).freezeResistance) });
+  if ((it as any).holdResistance != null) rows.push({ label: '束缚抗性', value: String((it as any).holdResistance) });
+  if ((it as any).sleepResistance != null) rows.push({ label: '睡眠抗性', value: String((it as any).sleepResistance) });
+  if ((it as any).bleedingResistance != null) rows.push({ label: '出血抗性', value: String((it as any).bleedingResistance) });
+  if ((it as any).confuseResistance != null) rows.push({ label: '混乱抗性', value: String((it as any).confuseResistance) });
+  if ((it as any).curseResistance != null) rows.push({ label: '诅咒抗性', value: String((it as any).curseResistance) });
+  if ((it as any).stoneResistance != null) rows.push({ label: '石化抗性', value: String((it as any).stoneResistance) });
+  if ((it as any).allActiveStatusResistance != null) rows.push({ label: '所有异常状态抗性', value: String((it as any).allActiveStatusResistance) });
+  // 其他
+  if ((it as any).inventoryLimit != null) rows.push({ label: '负重', value: String((it as any).inventoryLimit) });
+  if ((it as any).hpRegenSpeed != null) rows.push({ label: 'HP恢复速度', value: String((it as any).hpRegenSpeed) });
+  if ((it as any).mpRegenSpeed != null) rows.push({ label: 'MP恢复速度', value: String((it as any).mpRegenSpeed) });
+  if ((it as any).roomListMoveSpeedRate != null) rows.push({ label: '城镇移动速度', value: String((it as any).roomListMoveSpeedRate) });
+  return rows;
+});
 
 watch(() => props.modelValue, (val) => {
 	selectedItem.value = val ?? null;
@@ -527,14 +610,41 @@ onMounted(() => {
 							<ItemImg :icon="hoverItem.icon" :rarity="hoverItem.rarity ?? 0" style="width: 48px; height: 48px;" />
 						</div>
 						<div class="hover-panel-content-col">
-							<div :style="{ color: rarityMap[hoverItem.rarity ?? 0]?.color || '#f3f4f6' }" class="hover-title">{{ hoverItem.name }}</div>
-							<div class="hover-row">ID：{{ hoverItem.id }}</div>
-							<div class="hover-row">{{ getItemTypeText(hoverItem) }} · {{ getJobText(hoverItem) }} 可使用</div>
-							<div class="hover-row">稀有度：{{ rarityMap[hoverItem.rarity ?? 0]?.label || "普通" }}</div>
-							<div class="hover-row">等级：{{ hoverItem.minimumLevel ?? 1 }}</div>
-							<div class="hover-row">堆叠上限：{{ hoverItem.stackLimit ?? 1 }}</div>
-							<div v-if="hoverItem.explain" class="hover-desc">{{ hoverItem.explain }}</div>
-							<div v-if="hoverItem.description" class="hover-desc">{{ hoverItem.description }}</div>
+							<div class="hover-title-row">
+								<span class="hover-title" :style="{ color: rarityMap[hoverItem.rarity ?? 0]?.color || '#f3f4f6' }">{{ hoverItem.name }}</span>
+								<span class="hover-id">#{{ hoverItem.id }}</span>
+							</div>
+							<div class="hover-rarity" :style="{ color: rarityMap[hoverItem.rarity ?? 0]?.color || '#f3f4f6' }">{{ rarityMap[hoverItem.rarity ?? 0]?.label || '普通' }}</div>
+							<div class="hover-info" v-if="(hoverItem as any).weight || (hoverItem as any).price">
+								<span v-if="(hoverItem as any).weight">{{ ((hoverItem as any).weight / 1000).toFixed(1).replace(/\.0$/, '') }}kg</span>
+								<span v-if="(hoverItem as any).price" class="hover-price">{{ (hoverItem as any).price }}金币</span>
+							</div>
+							<div class="hover-info" v-if="getItemTypeText(hoverItem) || (hoverItem as any).itemGroupStr">
+								<span v-if="getItemTypeText(hoverItem)">{{ getItemTypeText(hoverItem) }}</span>
+								<span v-if="(hoverItem as any).itemGroupStr">{{ (hoverItem as any).itemGroupStr }}</span>
+							</div>
+							<div class="hover-info" v-if="getJobText(hoverItem)">
+								<span class="hover-jobs">可用职业：{{ getJobText(hoverItem) }}</span>
+							</div>
+							<div class="hover-info" v-if="(hoverItem as any).durability || (hoverItem as any).stackLimit > 1 || (hoverItem as any).attachTypeStr">
+								<span v-if="(hoverItem as any).durability">耐久度：{{ (hoverItem as any).durability }}/{{ (hoverItem as any).durability }}</span>
+								<span v-if="(hoverItem as any).stackLimit && (hoverItem as any).stackLimit > 1">堆叠上限：{{ (hoverItem as any).stackLimit }}</span>
+								<span v-if="(hoverItem as any).attachTypeStr" class="hover-attach" :class="{ 'attach-trade': (hoverItem as any).attachTypeStr === '不可交易' }">{{ (hoverItem as any).attachTypeStr }}</span>
+							</div>
+							<div class="hover-info" v-if="hoverItem.minimumLevel">
+								<span>Lv{{ hoverItem.minimumLevel }}级以上可以使用</span>
+							</div>
+							<div class="hover-stats" v-if="hoverAttackRows.length">
+								<div class="hover-stat-row" v-for="row in hoverAttackRows" :key="row.label">
+									<span class="hover-stat-label">{{ row.label }}</span>
+									<span class="hover-stat-value">+{{ row.value }}</span>
+								</div>
+							</div>
+							<div class="hover-bonus" v-if="hoverBonusRows.length">
+								<div class="hover-bonus-row" v-for="row in hoverBonusRows" :key="row.label">{{ row.label }}{{ row.value ? ' +' + row.value : '' }}</div>
+							</div>
+							<div v-if="hoverItem.explain" class="hover-explain">{{ hoverItem.explain.replaceAll('%%', '%').replaceAll('\\n', '\n') }}</div>
+							<div v-if="hoverItem.description" class="hover-desc">{{ hoverItem.description.replaceAll('%%', '%').replaceAll('\\n', '\n') }}</div>
 						</div>
 					</div>
 				</div>
@@ -740,6 +850,53 @@ onMounted(() => {
 	justify-content: flex-end;
 	margin-top: 10px;
 	flex: none;
+
+	:deep(.arco-pagination) {
+		color: #cbd5e1;
+	}
+
+	:deep(.arco-pagination-item),
+	:deep(.arco-pagination-prev),
+	:deep(.arco-pagination-next),
+	:deep(.arco-pagination-jumper-button) {
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid rgba(148, 163, 184, 0.25);
+		color: #e5e7eb;
+	}
+
+	:deep(.arco-pagination-item:hover),
+	:deep(.arco-pagination-prev:hover),
+	:deep(.arco-pagination-next:hover),
+	:deep(.arco-pagination-jumper-button:hover) {
+		background: rgba(255, 255, 255, 0.10);
+		border-color: rgba(148, 163, 184, 0.45);
+	}
+
+	:deep(.arco-pagination-item-active) {
+		background: rgba(56, 189, 248, 0.18);
+		border-color: rgba(56, 189, 248, 0.55);
+		color: #e5e7eb;
+	}
+  :deep(.arco-pagination-simple .arco-pagination-jumper){
+    color: #e5e7eb!important;
+  }
+	:deep(.arco-pagination-item-disabled),
+	:deep(.arco-pagination-prev-disabled),
+	:deep(.arco-pagination-next-disabled) {
+		opacity: 0.45;
+	}
+
+	:deep(.arco-pagination-jumper input),
+	:deep(.arco-pagination-jumper .arco-input-wrapper),
+	:deep(.arco-pagination-jumper .arco-input) {
+		background: rgba(15, 23, 42, 0.6);
+		border-color: rgba(148, 163, 184, 0.25);
+		color: #e5e7eb;
+	}
+
+	:deep(.arco-pagination-jumper input::placeholder) {
+		color: rgba(203, 213, 225, 0.55);
+	}
 }
 
 .hover-panel {
@@ -750,13 +907,13 @@ onMounted(() => {
 	padding: 12px;
 	border-radius: 8px;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-	max-width: 340px;
+	max-width: 400px;
 	pointer-events: none;
 	display: flex;
 	flex-direction: row;
 	align-items: flex-start;
-	min-width: 220px;
-  border: 1px solid rgba(32, 149, 224, .4);
+	min-width: 260px;
+	border: 1px solid rgba(32, 149, 224, .4);
 }
 
 .hover-panel-icon-col {
@@ -777,22 +934,99 @@ onMounted(() => {
 	justify-content: flex-start;
 }
 
-.hover-title {
-	font-weight: 600;
-	margin-bottom: 6px;
+.hover-title-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 4px;
 }
 
-.hover-row {
+.hover-title {
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.hover-id {
+	color: #64748b;
+	font-size: 11px;
+}
+
+.hover-rarity {
 	font-size: 12px;
-	color: #cbd5f5;
 	margin-bottom: 4px;
+}
+
+.hover-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	font-size: 12px;
+	color: #9ca3af;
+	margin-bottom: 2px;
+}
+
+.hover-price {
+	color: #fbbf24;
+}
+
+.hover-jobs {
+	color: #cbd5e1;
+	text-align: right;
+}
+
+.hover-attach {
+	color: #9ca3af;
+}
+
+.hover-attach.attach-trade {
+	color: #ef4444;
+}
+
+.hover-stats {
+	margin-top: 6px;
+	margin-bottom: 2px;
+}
+
+.hover-stat-row {
+	font-size: 12px;
+	margin-bottom: 1px;
+}
+
+.hover-stat-label {
+	color: #d1d5db;
+}
+
+.hover-stat-value {
+	color: #e2e8f0;
+}
+
+.hover-bonus {
+	margin-top: 4px;
+	margin-bottom: 2px;
+}
+
+.hover-bonus-row {
+	font-size: 12px;
+	color: #60a5fa;
+	margin-bottom: 1px;
+}
+
+.hover-explain {
+	margin-top: 6px;
+	font-size: 12px;
+	color: #60a5fa;
+	line-height: 1.5;
+	white-space: pre-wrap;
 }
 
 .hover-desc {
 	margin-top: 6px;
 	font-size: 12px;
-	color: #e2e8f0;
+	color: #6b7280;
+	font-style: italic;
 	line-height: 1.4;
+	white-space: pre-wrap;
 }
 
 .panel-left-scroll {

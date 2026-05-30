@@ -234,6 +234,10 @@ public class Item {
         return strings;
     }
 
+    public String getAttachTypeStr() {
+        return attachType == null ? "" : attachType.getDesc();
+    }
+
     public ItemIcon getIcon() {
         return icon;
     }

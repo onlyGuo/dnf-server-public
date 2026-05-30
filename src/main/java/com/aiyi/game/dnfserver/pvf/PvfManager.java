@@ -7,6 +7,7 @@ import com.aiyi.game.dnfserver.entity.stackable.Stackable;
 import com.aiyi.game.dnfserver.entity.stackable.StackableType;
 import com.xiaoyouma.dnf.parser.pvf.coder.PvfCoder;
 import com.xiaoyouma.dnf.parser.pvf.model.Pvf;
+import com.xiaoyouma.dnf.parser.pvf.model.PvfFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author xiatian
@@ -70,6 +72,9 @@ public class PvfManager {
         List<Stackable> stackableList = new ArrayList<>();
         JSONObject script = pvf.getScript("stackable/stackable.lst");
         for (String key : script.keySet()) {
+            if (key.equalsIgnoreCase("1038")){
+                System.out.println(script.getStr(key));
+            }
             String str = script.getStr(key);
             String path = "stackable/" + str;
             if (str.startsWith("/")){
