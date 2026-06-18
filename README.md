@@ -286,7 +286,7 @@ aliyun:
 [INFO] ------------------------------------------------------------------------
 ````
 9. 服务器安装JDK24环境，将`target/dnf-server-0.0.1-SNAPSHOT.jar`上传至服务器
-10. 在`dnf-server-0.0.1-SNAPSHOT.jar`同目录下, 上传Script.pvf.
+10. 在`dnf-server-0.0.1-SNAPSHOT.jar`同目录下的 data 目录中(可以手动创建， 服务启动后也会自动创建), 上传Script.pvf 和ImagePacks2（data/Script.pvf,data/ImagePacks2）.
 11. 在服务器jar包目录下执行: `nohup java -jar dnf-server-0.0.1-SNAPSHOT.jar &`, 端口默认9001
 12. 配置前端页面，确保本机已经安装了Node.js, 以`v22.21.1`为例, 进入到webui2目录中
 13. 依次执行下面命令:
@@ -327,5 +327,5 @@ server{
 3. 联系QQ：719348277
 
 ### 本地调试说明
-需将Script.pvf文件放到项目根目录, 方可完整调试, 打包后, 也需要将Script.pvf于Jar包放到一起部署(打包时, 不会直将Script.pvf打包到Jar包, 要手动放到同一个目录中, 此举是方便在不重新编译的情况下快速更新Script.pvf, 更新完Pvf文件后, 需要重启).
+需将Script.pvf文件放到项目根目录的 data 目录中, 方可完整调试, 打包后, 也需要将Script.pvf于Jar包放到一起部署(打包时, 不会直将Script.pvf打包到Jar包, 要手动放到同一个目录中, 此举是方便在不重新编译的情况下快速更新Script.pvf, 更新完Pvf文件后, 需要重启).
 
