@@ -14,6 +14,9 @@ https://github.com/onlyGuo/DNFLogin
 - [DOCKER_README_CN.md](DOCKER_README_CN.md)
 - [DOCKER_README.md](DOCKER_README.md)
 
+## 相关依赖
+有关 PVF/NPK 的解析操作，我放到了独立的仓库：[https://github.com/onlyGuo/dnf_parser
+](https://github.com/onlyGuo/dnf_parser)
 
 ## 预览
 ### 门户页
