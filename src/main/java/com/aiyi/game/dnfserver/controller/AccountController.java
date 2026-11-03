@@ -3,6 +3,7 @@ package com.aiyi.game.dnfserver.controller;
 import com.aiyi.core.beans.ResultBean;
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.game.dnfserver.conf.NoLogin;
+import com.aiyi.game.dnfserver.conf.GmAllowed;
 import com.aiyi.game.dnfserver.entity.AccountVO;
 import com.aiyi.game.dnfserver.service.AccountService;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.Date;
  * @Date: Create in 2021/04/14 15:10
  */
 @RestController
+@GmAllowed
 @RequestMapping("api/v1/account")
 public class AccountController {
 

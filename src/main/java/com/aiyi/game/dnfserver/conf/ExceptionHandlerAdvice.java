@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -98,6 +99,18 @@ public class ExceptionHandlerAdvice {
     @ResponseBody
     public ResultBean illegalArgumentExceptionException(Exception e) {
         return ResultBean.error(e.getMessage()).setCode(HttpStatus.BAD_REQUEST.value());
+    }
+
+    @ExceptionHandler(value = ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResultBean forbidden(ForbiddenException e) {
+        return ResultBean.error(e.getMessage()).setCode(HttpStatus.FORBIDDEN.value());
+    }
+
+    @ExceptionHandler(value = MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public ResultBean uploadTooLarge(MaxUploadSizeExceededException e) {
+        return ResultBean.error("文件超过服务器允许的上传大小").setCode(HttpStatus.PAYLOAD_TOO_LARGE.value());
     }
 
 }

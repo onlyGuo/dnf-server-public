@@ -167,10 +167,10 @@ onMounted(() => {
             </a-tag>
           </template>
         </a-table-column>
-        <a-table-column title="用户身份" data-index="parentUid">
+        <a-table-column title="用户身份" data-index="admin">
           <template #cell="{ record }">
-            <a-tag :color="record.parentUid === 0 ? 'green' : 'blue'">
-              {{ record.parentUid === 0 ? 'GM管理员' : '玩家' }}
+            <a-tag :color="record.admin === 2 ? 'purple' : record.admin === 1 ? 'green' : 'blue'">
+              {{ record.admin === 2 ? '超级管理员' : record.admin === 1 ? 'GM' : '玩家' }}
             </a-tag>
           </template>
         </a-table-column>

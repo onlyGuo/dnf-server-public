@@ -3,6 +3,7 @@ package com.aiyi.game.dnfserver.controller;
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.core.exception.ValidationException;
 import com.aiyi.core.util.thread.ThreadUtil;
+import com.aiyi.game.dnfserver.channel.ChannelService;
 import com.aiyi.game.dnfserver.conf.NoLogin;
 import com.aiyi.game.dnfserver.dao.AccountVODao;
 import com.aiyi.game.dnfserver.entity.AccountVO;
@@ -13,24 +14,23 @@ import com.aiyi.game.dnfserver.entity.equipment.EquipmentType;
 import com.aiyi.game.dnfserver.entity.stackable.Stackable;
 import com.aiyi.game.dnfserver.entity.stackable.StackableType;
 import com.aiyi.game.dnfserver.pvf.NpkManager;
-import com.aiyi.game.dnfserver.pvf.PvfCache;
+import com.aiyi.game.dnfserver.pvf.ImagePackStorage;
 import com.aiyi.game.dnfserver.pvf.PvfManager;
-import com.aiyi.game.dnfserver.utils.MinFieldUtil;
-import com.aiyi.game.dnfserver.utils.cache.CacheUtil;
-import com.aiyi.game.dnfserver.utils.cache.Key;
+import com.aiyi.game.dnfserver.pvf.PvfUploadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,24 +54,60 @@ public class PvfController {
     @Resource
     private NpkManager npkManager;
 
+    @Resource
+    private ImagePackStorage imagePackStorage;
+
+    @Resource
+    private PvfUploadService pvfUploads;
+
+    @Resource
+    private ChannelService channels;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(PvfController.class);
 
+    @GetMapping("imagepacks/status")
+    @com.aiyi.game.dnfserver.conf.GmAllowed
+    public Map<String, Object> imagePackStatus() {
+        Map<String, Object> status = imagePackStorage.status();
+        AccountVO account = accountVODao.get(ThreadUtil.getUserId());
+        status.put("canUpload", account != null && account.isSuperAdmin());
+        return status;
+    }
+
+    @PostMapping("imagepacks/upload")
+    public Map<String, Object> uploadImagePacks(@RequestParam("file") MultipartFile file) {
+        AccountVO account = accountVODao.get(ThreadUtil.getUserId());
+        if (account == null || !account.isSuperAdmin()) {
+            throw new com.aiyi.game.dnfserver.conf.ForbiddenException("只有超管可以上传 ImagePacks2");
+        }
+        return imagePackStorage.upload(file);
+    }
+
     @GetMapping("info")
+    @com.aiyi.game.dnfserver.conf.GmAllowed
     private Map<String, Object> getPvfInfo() {
-        ensurePvfCache();
         HashMap<String, Object> result = new HashMap<>();
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        result.put("canUpload", accountVO.isAdmin());
-        int size = PvfCache.getSize();
-        String fileSizeStr = size + " KB";
-        if (size > 1024) {
-            fileSizeStr = String.format("%.2f MB", size / 1024.0);
+        boolean gameAvailable = channels.canReloadPvf();
+        result.put("canUpload", accountVO != null && accountVO.isSuperAdmin() && gameAvailable);
+        result.put("gameAvailable", gameAvailable);
+        result.put("available", false);
+        result.put("size", "未配置");
+        result.put("equipmentCount", 0);
+        result.put("itemCount", 0);
+        if (Files.isRegularFile(pvfManager.getPvfPath())) {
+            try {
+                PvfManager.Catalog catalog = pvfManager.getCatalog();
+                int size = catalog.getSizeKb();
+                result.put("size", size > 1024 ? String.format("%.2f MB", size / 1024.0) : size + " KB");
+                result.put("equipmentCount", catalog.getEquipment().size());
+                result.put("itemCount", catalog.getStackable().size());
+                result.put("available", true);
+            } catch (RuntimeException e) {
+                LOGGER.warn("无法读取游戏 PVF 物品列表", e);
+                result.put("error", "游戏 PVF 解析失败，请检查或重新上传");
+            }
         }
-        result.put("size", fileSizeStr);
-        result.put("equipmentCount", PvfCache.getEquipmentList().size());
-//        result.put("equipmentList", PvfCache.getEquipmentList());
-        result.put("itemCount", PvfCache.getStackableList().size());
-//        result.put("itemList", PvfCache.getStackableList());
         return result;
     }
 
@@ -86,8 +122,9 @@ public class PvfController {
      * @return 分页结果
      */
     @GetMapping("search")
+    @com.aiyi.game.dnfserver.conf.GmAllowed
     public ResultPage<Item> search(String keyword, String type, String subType, Integer page, Integer pageSize) {
-        ensurePvfCache();
+        PvfManager.Catalog catalog = ensurePvfCache();
         if (null == page) {
             page = 1;
         }
@@ -110,7 +147,7 @@ public class PvfController {
 
         List<Item> filtered = new ArrayList<>();
         if (wantEquipment) {
-            for (Equipment equipment : safeEquipmentList()) {
+            for (Equipment equipment : catalog.getEquipment()) {
                 if (equipmentType != null && equipment.getEquipmentType() != equipmentType) {
                     continue;
                 }
@@ -121,7 +158,7 @@ public class PvfController {
             }
         }
         if (wantStackable) {
-            for (Stackable stackable : safeStackableList()) {
+            for (Stackable stackable : catalog.getStackable()) {
                 if (stackableType != null && stackable.getStackableType() != stackableType) {
                     continue;
                 }
@@ -144,9 +181,10 @@ public class PvfController {
 
     @GetMapping("img")
     @NoLogin
-    public void img(String path, int index, HttpServletResponse response) {
-        byte[] imageBytes = npkManager.getImageBytes(path, index);
+    public void img(String path, int index, @RequestParam(defaultValue = "false") boolean frame, HttpServletResponse response) {
+        byte[] imageBytes = frame ? npkManager.getImageFrameBytes(path, index) : npkManager.getImageBytes(path, index);
         response.setContentType("image/png");
+        response.setHeader("Cache-Control", "no-store");
         response.setHeader("Content-Disposition", "inline;filename=" + path + "@" + index + ".png");
         OutputStream out = null;
         try {
@@ -166,48 +204,19 @@ public class PvfController {
     }
 
     @PostMapping("upload")
-    public void upload(MultipartFile file) {
+    public Map<String, Object> upload(@RequestParam("file") MultipartFile file) throws Exception {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (accountVO == null || !accountVO.isSuperAdmin()) {
             throw new ValidationException("您不能上传PVF");
         }
-        // 临时保存
-        CacheUtil.lock(20000, Key.as("pvf_upload_lock"), () -> {
-            MinFieldUtil.cpyFile("Script.pvf", "Script_backup.pvf");
-            try {
-                MinFieldUtil.writeFile("Script.pvf", file.getBytes());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            try {
-                pvfManager.init();
-                int size = MinFieldUtil.getFileSizeKB(new File("Script.pvf").getAbsolutePath());
-                List<Equipment> equipmentList = pvfManager.getEquipmentList();
-                List<Stackable> stackableList = pvfManager.getStackableList();
-                PvfCache.setPvfSize(size);
-                PvfCache.setEquipmentList(equipmentList);
-                PvfCache.setStackableList(stackableList);
-            } catch (Exception e) {
-                // 恢复备份文件
-                MinFieldUtil.cpyFile("Script_backup.pvf", "Script.pvf");
-                pvfManager.init();
-                throw new ValidationException("PVF文件解析失败，已恢复为原文件，请检查后重新上传！错误信息：" + e.getMessage());
-            }
-            return null;
-        });
+        return pvfUploads.upload(file);
     }
 
-    private void ensurePvfCache() {
-        int size = PvfCache.getSize();
-        if (0 == size) {
-            size = MinFieldUtil.getFileSizeKB(new File("data/Script.pvf").getAbsolutePath());
-            PvfCache.setPvfSize(size);
-            System.out.println(PvfCache.getSize());
-            List<Equipment> equipmentList = pvfManager.getEquipmentList();
-            PvfCache.setEquipmentList(equipmentList);
-            List<Stackable> stackableList = pvfManager.getStackableList();
-            PvfCache.setStackableList(stackableList);
+    private PvfManager.Catalog ensurePvfCache() {
+        if (!Files.isRegularFile(pvfManager.getPvfPath())) {
+            throw new ValidationException("游戏服务中未配置 Script.pvf，物品列表不可用；可直接输入物品 ID");
         }
+        return pvfManager.getCatalog();
     }
 
     private boolean matchKeyword(Item item, String keyword, Integer keywordId) {
@@ -266,13 +275,4 @@ public class PvfController {
         }
     }
 
-    private List<Equipment> safeEquipmentList() {
-        List<Equipment> list = PvfCache.getEquipmentList();
-        return list == null ? new ArrayList<>() : list;
-    }
-
-    private List<Stackable> safeStackableList() {
-        List<Stackable> list = PvfCache.getStackableList();
-        return list == null ? new ArrayList<>() : list;
-    }
 }

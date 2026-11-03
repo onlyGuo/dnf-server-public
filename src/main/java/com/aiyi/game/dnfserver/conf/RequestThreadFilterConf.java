@@ -3,6 +3,8 @@ package com.aiyi.game.dnfserver.conf;
 import com.aiyi.core.exception.AccessOAuthException;
 import com.aiyi.core.util.thread.ThreadUtil;
 import com.aiyi.game.dnfserver.dao.User;
+import com.aiyi.game.dnfserver.dao.AccountVODao;
+import com.aiyi.game.dnfserver.entity.AccountVO;
 import com.aiyi.game.dnfserver.utils.cache.UserTokenCacheUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,9 @@ import java.util.UUID;
 @Component
 public class RequestThreadFilterConf implements HandlerInterceptor {
 
+    @Resource
+    private AccountVODao accounts;
+
 
     protected Logger logger = LoggerFactory.getLogger(RequestThreadFilterConf.class);
 
@@ -36,7 +41,7 @@ public class RequestThreadFilterConf implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String reqHeader = request.getHeader("Access-Control-Request-Headers");
         response.setStatus(HttpStatus.OK.value());
-        response.setHeader("Access-Control-Allow-Headers", reqHeader);
+        if (reqHeader != null) response.setHeader("Access-Control-Allow-Headers", reqHeader);
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())){
             response.setStatus(204);
             return false;
@@ -55,6 +60,15 @@ public class RequestThreadFilterConf implements HandlerInterceptor {
             if (null == methodAnnotation){
                 if (null == loginUser){
                     throw new AccessOAuthException("请登录");
+                }
+                AccountVO current = accounts.get(loginUser.getId());
+                if (current == null || (current.getAdmin() != 1 && current.getAdmin() != 2)) {
+                    throw new AccessOAuthException("账号没有后台访问权限");
+                }
+                boolean gmAllowed = method.hasMethodAnnotation(GmAllowed.class)
+                        || method.getBeanType().isAnnotationPresent(GmAllowed.class);
+                if (!current.isSuperAdmin() && !gmAllowed) {
+                    throw new ForbiddenException("只有超管可以访问此功能");
                 }
             }
         }

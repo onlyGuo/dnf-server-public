@@ -12,6 +12,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class DnfServerApplication {
 
 	public static void main(String[] args) {
+		// Set these before Spring or a connection pool performs the first lookup.
+		// Channel DDNS must observe DNS changes rather than a stale JVM cache.
+		java.security.Security.setProperty("networkaddress.cache.ttl", "0");
+		java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0");
 		SpringApplication.run(DnfServerApplication.class, args);
 	}
 

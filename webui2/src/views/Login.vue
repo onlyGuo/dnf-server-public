@@ -31,7 +31,7 @@ const login = () => {
   <div class="login-box">
     <div class="login-box-header">
       <img src="../assets/images/icon.png" />
-      <h1>DNF-Admin</h1>
+      <h1>DNF 服务器管理平台</h1>
     </div>
     <div class="login-box-body">
       <a-form layout="vertical" :model="form">
@@ -100,7 +100,7 @@ const login = () => {
       h1 {
         color: #333;
         margin: 0;
-        font-size: 45px;
+        font-size: 23px;
         font-weight: 700;
       }
     }

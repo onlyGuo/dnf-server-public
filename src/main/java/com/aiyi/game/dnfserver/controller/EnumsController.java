@@ -17,6 +17,7 @@ import java.util.*;
  * @author xiatian
  */
 @RestController
+@com.aiyi.game.dnfserver.conf.GmAllowed
 @RequestMapping("api/v1/enums")
 public class EnumsController {
 

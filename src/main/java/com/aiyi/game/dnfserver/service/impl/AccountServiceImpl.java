@@ -17,6 +17,9 @@ import com.aiyi.game.dnfserver.entity.AccountVO;
 import com.aiyi.game.dnfserver.entity.GameManagerAuthKey;
 import com.aiyi.game.dnfserver.entity.LoginAccount;
 import com.aiyi.game.dnfserver.service.AccountService;
+import com.aiyi.game.dnfserver.security.RoleBootstrap;
+import com.aiyi.game.dnfserver.security.OwnershipService;
+import com.aiyi.game.dnfserver.security.GameKeyService;
 import com.aiyi.game.dnfserver.utils.MD5;
 import com.aiyi.game.dnfserver.utils.MinFieldUtil;
 import com.aiyi.game.dnfserver.utils.RSATool;
@@ -50,6 +53,15 @@ public class AccountServiceImpl implements AccountService {
     @Resource
     private AdminTempPasswordDao adminTempPasswordDao;
 
+    @Resource
+    private RoleBootstrap roles;
+
+    @Resource
+    private OwnershipService ownership;
+
+    @Resource
+    private GameKeyService gameKeys;
+
     @Override
     public String loginClient(AccountVO accountVO, boolean ok) {
         // 账号密码匹配用户
@@ -75,15 +87,7 @@ public class AccountServiceImpl implements AccountService {
                 "10403030101", account.getUid());
         byte[] bs = String2Hex.hex2tobin(data);
         // 加密计算出用户授权Key
-        String privateKey = new String(MinFieldUtil.readFile("data/private.key"));
-        privateKey = privateKey.replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace("\r", "")
-                .replace("\n", "");
-//        String privateKey = new String(MinFieldUtil.readResource("private.key"))
-//                .replace("\r", "")
-//                .replace("\n", "");
-        byte[] resultByte = RSATool.encryptByPrivateKey(bs, privateKey);
+        byte[] resultByte = gameKeys.encryptForGame(bs);
         return Base64.getEncoder().encodeToString(resultByte);
     }
 
@@ -107,17 +111,22 @@ public class AccountServiceImpl implements AccountService {
             throw new ValidationException("验证码不正确或已过期");
         }
 
+        // The role and account ownership are assigned by the server, never by JSON input.
+        boolean firstAccount = roles.assignRegistrationRole(accountVO, isAdmin);
+        accountVO.setUid(0);
+        accountVO.setParentUid(0);
+
         Integer integer = accountDao.selectByAccount(accountVO.getAccountname());
         if (null != integer && integer > 0){
             throw new ValidationException("该用户名已存在, 请更换其他用户名");
         }
 
-        if (!isAdmin){
+        if (!isAdmin && !firstAccount){
             if (StringUtils.isEmpty(accountVO.getRecommender())){
                 accountVO.setRecommender("123123");
             }
         }
-        if (isAdmin){
+        if (isAdmin && !firstAccount){
             if (StringUtils.isEmpty(accountVO.getAuthCode())){
                 throw new ValidationException("请填写授权码才能注册GM");
             }
@@ -136,7 +145,7 @@ public class AccountServiceImpl implements AccountService {
 
 
 
-        if (StringUtils.hasText(accountVO.getRecommender()) && accountVO.getParentUid() == 0){
+        if (!firstAccount && StringUtils.hasText(accountVO.getRecommender())){
             AccountVO recommender = accountVODao.get(Method.where(AccountVO::getAccountname,
                     C.EQ, accountVO.getRecommender()));
             if (null == recommender){
@@ -196,7 +205,7 @@ public class AccountServiceImpl implements AccountService {
         if (laseLoginDateEnd != null){
             laseLoginDateEnd = new Date(laseLoginDateEnd.getTime() + DateUtil.DAY_TIME - 1);
         }
-        if (accountVO.isAdmin()){
+        if (accountVO.isSuperAdmin()){
             list =  accountDao.listAll(account, loginStatus,
                     lastLoginDate, laseLoginDateEnd, (page - 1) * pageSize, pageSize);
             count = accountDao.countAll(account, loginStatus, lastLoginDate, laseLoginDateEnd,
@@ -207,22 +216,13 @@ public class AccountServiceImpl implements AccountService {
             count = accountDao.count(account, loginStatus, lastLoginDate, laseLoginDateEnd, accountVO.getUid(),
                     page, pageSize);
         }
+        list.forEach(item -> item.setPassword(null));
         return new ResultPage<>(count, page, pageSize, list);
     }
 
     @Override
     public void recharge(long uid, int face) {
-        long userId = ThreadUtil.getUserId();
-        AccountVO thisAccount = accountVODao.get(userId);
-        AccountVO accountVO = accountVODao.get(uid);
-        if (null == accountVO){
-            throw new ValidationException("Undefined the user!");
-        }
-        // 不是管理员且不是自己的下级
-        if (!thisAccount.isAdmin() && accountVO.getParentUid() != thisAccount.getUid()
-                && accountVO.getUid() != thisAccount.getUid()){
-            throw new ValidationException("不能夸权限为其他工会的成员充值");
-        }
+        ownership.requireAccount(uid);
         accountVODao.execute("update taiwan_billing.cash_cera set " +
                 "cera = cera + ? where account=?", face, uid);
 
@@ -230,10 +230,11 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountVO info(long uid) {
-        AccountVO accountVO = accountVODao.get(uid);
+        AccountVO accountVO = ownership.requireAccount(uid);
         List<AccountVO> list = accountVODao.list("SELECT cera FROM taiwan_billing.cash_cera " +
                 "WHERE account=?", uid);
-        accountVO.setCera(list.get(0).getCera());
+        if (!list.isEmpty()) accountVO.setCera(list.get(0).getCera());
+        accountVO.setPassword(null);
         return accountVO;
     }
 

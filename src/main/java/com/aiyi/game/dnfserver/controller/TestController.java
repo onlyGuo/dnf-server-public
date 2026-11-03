@@ -27,7 +27,6 @@ public class TestController {
     @Resource
     private CharacInfoDao characInfoDao;
 
-    @NoLogin
     @GetMapping("1")
     public Object testSelect(){
         CharacInfo characInfo = characInfoDao.get(2);

@@ -181,8 +181,26 @@ const routes: Array<RouteRecordRaw> = [
                         meta: {
                             title: '版本管理'
                         }
+                    },
+                    {
+                        path: 'keys',
+                        name: 'GameKeys',
+                        component: () => import('../views/admin/login/GameKeys.vue'),
+                        meta: { title: '密钥管理' }
                     }
                 ]
+            },
+            {
+                path: 'channels',
+                name: 'ChannelManager',
+                component: () => import('../views/admin/channel/ChannelManager.vue'),
+                meta: { title: '频道管理' }
+            },
+            {
+                path: 'database',
+                name: 'DatabaseManager',
+                component: () => import('../views/admin/database/DatabaseManager.vue'),
+                meta: { title: '数据库管理' }
             },
             {
                 path: 'assist',
@@ -214,7 +232,8 @@ const router = createRouter({
 // 全局前置守卫 (简单的权限控制)
 router.beforeEach((to) => {
     // 1. 设置标题
-    document.title = (to.meta.title as string) || '默认标题'
+    const pageTitle = to.meta.title as string | undefined
+    document.title = pageTitle ? `${pageTitle} - DNF 服务器管理平台` : 'DNF 服务器管理平台'
 
     const isAuthenticated = !!localStorage.getItem('token')
 

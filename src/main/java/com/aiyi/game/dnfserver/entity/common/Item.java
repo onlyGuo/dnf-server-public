@@ -7,6 +7,7 @@ import com.github.houbb.opencc4j.util.ZhConverterUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +70,9 @@ public class Item {
     private int stackLimit;
 
     private ItemIcon icon;
+
+    /** PVF 中定义的图标标记，可能包含角标、边框或其他装饰。 */
+    private final List<ItemIcon> iconMarks = new ArrayList<>();
 
     public void parseForScript(JSONObject script){
         if (script.containsKey("[rarity]")){
@@ -140,6 +144,28 @@ public class Item {
             this.icon = itemIcon;
         } else {
             this.icon = null;
+        }
+
+        this.iconMarks.clear();
+        // Repeated PVF tags are exposed by the parser as "[icon mark]-1", "-2", etc.
+        for (int ordinal = 0; ; ordinal++) {
+            String key = ordinal == 0 ? "[icon mark]" : "[icon mark]-" + ordinal;
+            if (!script.containsKey(key)) break;
+            try {
+                JSONArray mark = JSON.parseArray(script.getStr(key));
+                if (mark != null && !mark.isEmpty()) {
+                    String path = mark.getString(0);
+                    int index = mark.size() >= 2 ? mark.getIntValue(1) : 0;
+                    if (path != null && !path.trim().isEmpty() && index >= 0) {
+                        ItemIcon itemMark = new ItemIcon();
+                        itemMark.setPath(path.trim().replace('\\', '/').toLowerCase(Locale.ROOT));
+                        itemMark.setIndex(index);
+                        this.iconMarks.add(itemMark);
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // A malformed optional mark must not hide the item or its other marks.
+            }
         }
     }
 
@@ -240,5 +266,9 @@ public class Item {
 
     public ItemIcon getIcon() {
         return icon;
+    }
+
+    public List<ItemIcon> getIconMarks() {
+        return iconMarks;
     }
 }

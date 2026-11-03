@@ -8,13 +8,13 @@ COPY webui2 ./
 RUN npx vite build
 
 # Backend Build Stage
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-24 AS backend
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS backend
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
-COPY libs ./libs
+COPY --from=frontend /app/webui/dist/ ./src/main/resources/static/
 # Package the application (skip tests for speed)
-RUN mvn clean package -DskipTests
+RUN --mount=type=cache,id=dnf-web-m2,target=/root/.m2/repository mvn -B -ntp clean package -DskipTests
 
 # Runtime Stage
 FROM eclipse-temurin:21-jre
@@ -22,7 +22,7 @@ FROM eclipse-temurin:21-jre
 # Install Nginx & gettext & openssl & tzdata & mysql-client
 # use eclipse-temurin (Ubuntu/Debian based) which supports apt-get
 RUN apt-get update && \
-    apt-get install -y nginx gettext-base openssl tzdata mariadb-client && \
+    apt-get install -y nginx gettext-base openssl tzdata mariadb-client python3 && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     apt-get clean && \
@@ -43,6 +43,8 @@ COPY --from=backend /app/target/*.jar app.jar
 COPY nginx.conf.template /etc/nginx/nginx.conf.template
 COPY entrypoint.sh /app/entrypoint.sh
 COPY init.sql /app/init.sql.template
+COPY deploy/integrated/init_db.py /app/init_db.py
+COPY deploy/integrated/ /app/dnf-integration/
 RUN chmod +x /app/entrypoint.sh
 
 # Environment Variables

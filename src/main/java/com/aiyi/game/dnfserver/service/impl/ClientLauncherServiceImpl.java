@@ -109,7 +109,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public ClientLauncherVersion addVersion(ClientLauncherVersion version) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (version == null) {
@@ -137,7 +137,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public ClientLauncherVersion updateVersion(ClientLauncherVersion version) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (version == null) {
@@ -163,7 +163,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteVersion(int id) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (id <= 0) {
@@ -205,7 +205,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public ClientLauncherBanner addBanner(ClientLauncherBanner banner) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (banner == null) {
@@ -232,7 +232,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public ClientLauncherBanner updateBanner(ClientLauncherBanner banner) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (banner == null) {
@@ -256,7 +256,7 @@ public class ClientLauncherServiceImpl implements ClientLauncherService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteBanner(int id) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (id <= 0) {

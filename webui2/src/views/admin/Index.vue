@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import {nextTick, onMounted, ref} from "vue";
+import {computed, nextTick, onMounted, ref} from "vue";
 import RecursiveMenuItem from "../../components/RecursiveMenuItem.vue";
 import router from "../../router";
 import {ApiGlobalConfig} from "../../api/ApiGlobalConfig.ts";
@@ -11,16 +11,22 @@ const onCollapse = () => {
   collapsed.value = !collapsed.value;
 };
 const menus = ref([] as any[]);
-const breadcrumbList = ref<string[]>(['系统后台', '首页']);
+const breadcrumbList = ref<string[]>(['管理平台', '首页']);
 const selectedKeys = ref<string[]>(['/dashboard']);
 const openKeys = ref<string[]>([]);
 const userInfo = ref<any>(null);
+const canViewRoute = computed(() => {
+  if (!userInfo.value) return false;
+  if (userInfo.value.admin === 2) return true;
+  const path = router.currentRoute.value.path;
+  return path === '/admin/dashboard' || path.startsWith('/admin/player/');
+});
 const historyPages = ref<any[]>([{
   path: '/dashboard',
   meta: { title: '首页', icon: 'home' }
 }]);
 
-menus.value = [
+const allMenus = [
   {
     path: '/dashboard',
     meta: { title: '首页', icon: 'home' }
@@ -41,6 +47,7 @@ menus.value = [
   },
   {
     path: '/pvf',
+    superOnly: true,
     meta: { title: 'PVF管理', icon: 'home' },
     children: [
       {
@@ -51,6 +58,7 @@ menus.value = [
   },
   {
     path: '/login',
+    superOnly: true,
     meta: { title: '登录器管理', icon: 'home' },
     children: [
       {
@@ -60,30 +68,53 @@ menus.value = [
       {
         path: 'versions',
         meta: { title: '版本管理', icon: 'home' },
+      },
+      {
+        path: 'keys',
+        meta: { title: '密钥管理', icon: 'home' },
       }
     ]
   },
   {
+    path: '/channels',
+    superOnly: true,
+    meta: { title: '频道管理', icon: 'home' }
+  },
+  {
     path: '/assist',
+    superOnly: true,
     meta: { title: '客户端管理', icon: 'home' }
+  },
+  {
+    path: '/database',
+    superOnly: true,
+    meta: { title: '数据库管理', icon: 'home' }
   }
 ];
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const response = await Request.get('api/v1/session');
+    userInfo.value = response.data;
+    menus.value = allMenus.filter(item => !item.superOnly || userInfo.value.admin === 2);
+  } catch {
+    return;
+  }
   nextTick(() => {
-    console.log('Menus:', menus.value);
     // 初始化面包屑导航
-    let path = router.currentRoute.value.fullPath;
+    let path = router.currentRoute.value.path;
     if (!path || path.trim() === '/'){
       path = window.location.pathname;
     }
-    onClickMenuItem(path.slice(6));
+    const menuPath = path.slice(6) || '/dashboard';
+    if (searchByFullPath(menuPath, menus.value, [])) onClickMenuItem(menuPath);
+    else onClickMenuItem('/dashboard');
   });
 });
 
 
 const onClickMenuItem = (item: any, _ev?: Event) => {
-  const tempBreadcrumbList = ['系统后台'] as string[];
+  const tempBreadcrumbList = ['管理平台'] as string[];
   const itemObj = searchByFullPath(item, menus.value, tempBreadcrumbList);
   if (!itemObj){
     throw new Error(`Menu item not found for path: ${item}`);
@@ -116,7 +147,7 @@ const onClickMenuItem = (item: any, _ev?: Event) => {
 
 const searchByFullPath = (path: string, routes: any[], tempBreadcrumbList: string[]): any | null => {
   if (!tempBreadcrumbList){
-    tempBreadcrumbList = ['系统后台'];
+    tempBreadcrumbList = ['管理平台'];
   }
   for (let route of routes) {
     const fullPath = route.fullPath || route.path;
@@ -142,12 +173,12 @@ const imgBaseUrl = ApiGlobalConfig.imageViewer.baseURL
 
 
 
-const onDeleteTab = (tabKey: string) => {
-  const index = historyPages.value.findIndex(page => page.path === tabKey);
+const onDeleteTab = (tabKey: string | number) => {
+  const index = historyPages.value.findIndex(page => page.path === String(tabKey));
   if (index !== -1) {
     historyPages.value.splice(index, 1);
     // 如果关闭的是当前激活的标签页，切换到最后一个标签页
-    if (tabKey === selectedKeys.value[0]) {
+    if (String(tabKey) === selectedKeys.value[0]) {
       const lastPage = historyPages.value[historyPages.value.length - 1];
       if (lastPage) {
         onClickMenuItem(lastPage.path);
@@ -161,8 +192,6 @@ const logout = () => {
   router.replace('/login')
 }
 
-// TODO 临时先随便请求个接口，触发后端验证token逻辑，获取用户信息
-Request.get('api/v1/account?page=1&pageSize=1')
 </script>
 
 <template>
@@ -186,7 +215,7 @@ Request.get('api/v1/account?page=1&pageSize=1')
           <div class="logo">
             <img src="../../assets/images/icon.png" alt="Logo" />
             <span v-if="!collapsed">
-              DNF-Admin
+              DNF 服务器管理平台
             </span>
           </div>
         </a-menu-item>
@@ -220,15 +249,15 @@ Request.get('api/v1/account?page=1&pageSize=1')
                   />
                 </a-avatar>
                 <a-avatar v-else-if="userInfo" :size="40">
-                  {{userInfo.nickName ? userInfo.nickName : userInfo.userName}}
+                  {{userInfo.account}}
                 </a-avatar>
                 <a-avatar v-else :size="40">
                   <icon-user />
                 </a-avatar>
               </div>
               <div class="user-info-right" style="color: white; margin-left: 8px;">
-                <div>{{userInfo ? (userInfo.nickName ? userInfo.nickName : userInfo.userName) : 'GM管理员'}}</div>
-                <div style="font-size: 12px;" v-if="userInfo">{{userInfo.email ? userInfo.email : (userInfo.phonenumber ? userInfo.phonenumber : '')}}</div>
+                <div>{{userInfo?.account || '管理员'}}</div>
+                <div style="font-size: 12px;" v-if="userInfo">{{userInfo.admin === 2 ? '超级管理员' : 'GM'}}</div>
               </div>
             </div>
             <template #content>
@@ -246,14 +275,14 @@ Request.get('api/v1/account?page=1&pageSize=1')
         </div>
       </a-layout-header>
       <a-layout-content class="layout-content">
-        <a-tabs class="layout-tabs" hide-content closable editable @delete="onDeleteTab" v-model:active-key="selectedKeys[0]" @change="(key: string | number, _ev: Event) => onClickMenuItem(String(key))">
+      <a-tabs class="layout-tabs" hide-content closable editable @delete="onDeleteTab" v-model:active-key="selectedKeys[0]" @change="(key: string | number) => onClickMenuItem(String(key))">
           <a-tab-pane v-for="page in historyPages" :key="page.path" :title="page.meta.title" :closable="page.path !== selectedKeys[0]">
           </a-tab-pane>
         </a-tabs>
         <!-- 动态路由视图 -->
         <div class="content-view">
           <a-scrollbar style="height: 100%;overflow: auto;">
-            <router-view :key="router.currentRoute.value.fullPath" class="router-viewer"/>
+            <router-view v-if="canViewRoute" :key="router.currentRoute.value.fullPath" class="router-viewer"/>
           </a-scrollbar>
         </div>
       </a-layout-content>
@@ -287,7 +316,7 @@ Request.get('api/v1/account?page=1&pageSize=1')
         overflow: hidden;
         text-overflow: ellipsis;
         color: white;
-        font-size: 20px;
+        font-size: 15px;
         font-weight: bold;
         vertical-align: middle;
       }

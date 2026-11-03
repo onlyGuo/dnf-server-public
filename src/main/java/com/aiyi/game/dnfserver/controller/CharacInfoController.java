@@ -2,6 +2,7 @@ package com.aiyi.game.dnfserver.controller;
 
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.game.dnfserver.conf.NoLogin;
+import com.aiyi.game.dnfserver.conf.GmAllowed;
 import com.aiyi.game.dnfserver.entity.CharacInfo;
 import com.aiyi.game.dnfserver.service.CharacService;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
@@ -18,6 +19,7 @@ import java.util.List;
  * @Date: Create in 2021/04/13 14:33
  */
 @RestController
+@GmAllowed
 @RequestMapping("api/v1/charac")
 public class CharacInfoController {
 
@@ -47,7 +49,6 @@ public class CharacInfoController {
      * @return
      */
     @GetMapping("{account}")
-    @NoLogin
     public List<CharacInfo> listByAccount(@PathVariable String account){
         return characService.list(account);
     }

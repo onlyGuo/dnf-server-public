@@ -49,10 +49,11 @@ public class LoginController {
         if (null == account){
             throw new ValidationException("账号或密码错误");
         }
-        if (!account.isAdmin() && account.getParentUid() != 0){
+        if (account.getAdmin() != 1 && account.getAdmin() != 2){
             throw new ValidationException("只有GM账号才能登录后台管理系统");
         }
         user.setId(account.getUid());
+        user.setPassword(null);
         String token = UUID.randomUUID().toString().replace("-", "");
         UserTokenCacheUtil.putUserCache(token, user);
         return token;

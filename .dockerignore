@@ -1,0 +1,14 @@
+.git
+.idea
+node_modules
+**/node_modules
+target
+**/target
+webui2/dist
+data
+dnf_mock
+logs
+*.log
+*.iml
+src/main/resources/private.key*
+src/main/resources/publickey.pem

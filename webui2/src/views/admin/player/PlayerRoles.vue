@@ -3,8 +3,12 @@ import {onMounted, ref, reactive} from "vue";
 import {Message, Modal} from "@arco-design/web-vue";
 import Request from "../../../api/Request";
 import ItemPicker from "../../../components/ItemPicker.vue";
+import InventoryManager from './InventoryManager.vue';
 
 const loading = ref(false);
+const inventoryVisible = ref(false);
+const inventoryCharacter = ref<any>(null);
+const openInventory = (character: any) => { inventoryCharacter.value = character; inventoryVisible.value = true; };
 
 const searchForm = reactive({
 	pageNum: 1,
@@ -228,9 +232,9 @@ const openSendMail = (record: any) => {
 
 const submitSendMail = async () => {
 	mailForm.value.receiveCharacNo = sendMailOption.value.receiveCharacNo;
-	mailForm.value.itemId = mailForm.value.item?.id ?? null;
+	mailForm.value.itemId = mailForm.value.itemId ?? mailForm.value.item?.id;
 	if (!mailForm.value.itemId) {
-		Message.error("必须选择一个物品");
+		Message.error("请选择物品或输入物品 ID");
 		return;
 	}
 	const payload = {
@@ -345,6 +349,7 @@ onMounted(() => {
 							</a-button>
 							<template #content>
 								<a-doption @click="openEdit(record)">编辑/详情</a-doption>
+								<a-doption @click="openInventory(record)">背包管理</a-doption>
 									<a-doption @click="openSendMail(record)">发送邮件</a-doption>
 								<a-doption @click="overTasks(record.characNo)">完成任务</a-doption>
 							</template>
@@ -353,6 +358,7 @@ onMounted(() => {
 				</a-table-column>
 			</template>
 		</a-table>
+		<InventoryManager v-model:visible="inventoryVisible" :character="inventoryCharacter" />
 
 		<div style="display: flex; justify-content: flex-end; margin-top: 12px;">
 			<a-pagination
@@ -484,13 +490,17 @@ onMounted(() => {
 					<a-col :span="24">
             <div class="mail-item-row">
               <a-form-item label="物品名称" style="flex: 1">
-                <ItemPicker v-model="mailForm.item" style="width: 100%;"/>
+                <ItemPicker v-model="mailForm.item" style="width: 100%;" @change="mailForm.itemId = $event?.id ?? undefined" />
+              </a-form-item>
+              <a-form-item label="物品 ID" style="width: 160px">
+                <a-input-number v-model="mailForm.itemId" :min="1" :max="2147483647" :precision="0" placeholder="可直接输入" @change="mailForm.item && mailForm.item.id !== $event && (mailForm.item = null)" />
               </a-form-item>
               <a-form-item label="物品数量" style="width: 160px">
                 <a-input-number v-model="mailForm.addInfo" :min="1" :max="100000" />
               </a-form-item>
             </div>
 					</a-col>
+					<a-col :span="24"><span class="mail-tip">没有 PVF 物品列表时，可直接输入物品 ID。</span></a-col>
 					<a-col :span="6">
 						<a-form-item label="强化等级">
 							<a-input-number v-model="mailForm.upgrade" :min="0" :max="31" style="width: 100%" />

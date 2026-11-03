@@ -39,7 +39,8 @@ public class AccountVO extends PO {
      */
     private String vip = "";
 
-    private boolean admin;
+    // 0 = player, 1 = GM, 2 = super administrator.
+    private int admin;
 
     @FieldName(name = "parent_uid")
     private long parentUid;
@@ -197,12 +198,16 @@ public class AccountVO extends PO {
         this.validationIndex = validationIndex;
     }
 
-    public boolean isAdmin() {
+    public int getAdmin() {
         return admin;
     }
 
-    public void setAdmin(boolean admin) {
+    public void setAdmin(int admin) {
         this.admin = admin;
+    }
+
+    public boolean isSuperAdmin() {
+        return admin == 2;
     }
 
     public long getParentUid() {

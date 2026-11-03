@@ -16,11 +16,23 @@
         alt="无图"
         class="error-icon"
     />
+    <template v-for="(mark, index) in markImages" :key="`${index}:${mark.url}`">
+      <img
+          v-if="!failedMarkUrls.has(mark.url)"
+          :src="mark.url"
+          alt=""
+          aria-hidden="true"
+          class="item-icon-mark"
+          loading="lazy"
+          @error="handleMarkError(mark.url)"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { imagePackRevision } from './imagePackRevision';
 
 // 定义 Props
 const props = defineProps({
@@ -35,16 +47,28 @@ const props = defineProps({
     type: Object,
     required: true,
     default: () => ({ path: '', index: 0 })
+  },
+  iconMarks: {
+    type: Array,
+    default: () => []
   }
 });
 
 // 状态：是否加载失败
 const isLoadError = ref(false);
+const failedMarkUrls = ref(new Set());
 
 // 监听 props 变化，如果路径变了，重置错误状态，尝试重新加载
 watch(() => props.icon, () => {
   isLoadError.value = false;
 }, { deep: true });
+watch(() => props.iconMarks, () => {
+  failedMarkUrls.value = new Set();
+}, { deep: true });
+watch(imagePackRevision, () => {
+  isLoadError.value = false;
+  failedMarkUrls.value = new Set();
+});
 
 // 基础红叉图片 (SVG Base64)，红色 X
 const redCrossSrc = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggc3Ryb2tlPSIjZmYwMDAwIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTYgNiBMMjYgMjYgTTI2IDYgTDYgMjYiIGZpbGw9Im5vbmUiLz48L3N2Zz4=";
@@ -53,8 +77,19 @@ const redCrossSrc = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53M
 const imageUrl = computed(() => {
   if (!props.icon || !props.icon.path) return '';
   // 拼接路径
-  return `/api/v1/pvf/img?path=sprite/${props.icon.path}&index=${props.icon.index}`;
+  return `/api/v1/pvf/img?path=${encodeURIComponent(`sprite/${props.icon.path}`)}&index=${encodeURIComponent(props.icon.index)}&v=${encodeURIComponent(imagePackRevision.value)}`;
 });
+
+const markImages = computed(() => {
+  return props.iconMarks.filter(mark => mark?.path).map(mark => {
+    const path = String(mark.path).replace(/\\/g, '/').replace(/^\/+/, '');
+    const spritePath = path.toLowerCase().startsWith('sprite/') ? path : `sprite/${path}`;
+    return { url: `/api/v1/pvf/img?path=${encodeURIComponent(spritePath)}&index=${encodeURIComponent(mark.index ?? 0)}&frame=true&v=${encodeURIComponent(imagePackRevision.value)}` };
+  });
+});
+const handleMarkError = url => {
+  failedMarkUrls.value = new Set([...failedMarkUrls.value, url]);
+};
 
 // 决定是否显示主图片
 const shouldShowImage = computed(() => {
@@ -95,6 +130,15 @@ const handleError = () => {
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.dnf-icon-wrapper .item-icon-mark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
 }
 
 /* 红叉图标稍微缩小一点，避免贴边 */

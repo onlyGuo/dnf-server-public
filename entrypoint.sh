@@ -3,21 +3,12 @@
 # Init data directory
 mkdir -p /app/data
 
-# Check and generate keys
-if [ ! -f "/app/data/private.key" ] || [ ! -f "/app/data/publickey.pem" ]; then
-    echo "Keys not found. Generating keys (2048bit PKCS#8)..."
-    # Generate PKCS#8 Private Key
-    openssl genpkey -algorithm RSA -out /app/data/private.key -pkeyopt rsa_keygen_bits:2048
-    # Extract Public Key
-    openssl rsa -pubout -in /app/data/private.key -out /app/data/publickey.pem
-    echo "Keys generated in /app/data."
-else
-    echo "Keys found in /app/data."
-fi
+# Login uses an existing platform or game key, or an explicitly configured key.
+# Do not generate an unrelated key for a standalone Web instance.
 
 # DB Initialization
 MARKER_FILE="/app/data/.db_initialized"
-if [ ! -f "$MARKER_FILE" ]; then
+if [ "${DNF_DB_AUTO_INIT:-true}" = "true" ] && [ ! -f "$MARKER_FILE" ]; then
     echo "DB Initialization marker not found. Attempting to initialize DB..."
 
     if [ -n "$SPRING_DATASOURCE_URL" ] && [ -n "$SPRING_DATASOURCE_USERNAME" ]; then
@@ -41,30 +32,35 @@ if [ ! -f "$MARKER_FILE" ]; then
 
         echo "Connecting to MySQL at $DB_HOST:$DB_PORT (User: $SPRING_DATASOURCE_USERNAME, DB: $DB_NAME)..."
 
-        # Generate init.sql from template
-        envsubst '${DB_NAME}' < /app/init.sql.template > /app/init.sql
-
-        # Run init.sql
-        # Note: We assume password is provided via env, if empty it prompts or error
-        mysql -h "$DB_HOST" -P "$DB_PORT" -u "$SPRING_DATASOURCE_USERNAME" -p"$SPRING_DATASOURCE_PASSWORD" < /app/init.sql
-
-        if [ $? -eq 0 ]; then
+        # The source SQL also contains destructive DROP statements and sample data.
+        # Generate and apply only additive schema changes against the configured DB.
+        INIT_SQL=$(mktemp /tmp/dnf-web-init.XXXXXX)
+        export DNF_DB_INIT_HOST="$DB_HOST" DNF_DB_INIT_PORT="$DB_PORT"
+        export DNF_DB_INIT_USER="$SPRING_DATASOURCE_USERNAME" DNF_DB_INIT_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
+        export DNF_DB_INIT_NAME="$DB_NAME" DNF_INIT_SQL=/app/init.sql.template
+        if python3 /app/init_db.py > "$INIT_SQL" && \
+           MYSQL_PWD="$SPRING_DATASOURCE_PASSWORD" mysql -h "$DB_HOST" -P "$DB_PORT" -u "$SPRING_DATASOURCE_USERNAME" < "$INIT_SQL"; then
             echo "Database initialized successfully."
             touch "$MARKER_FILE"
         else
             echo "WARNING: Database initialization failed. Please check logs above."
             echo "Connection params: Host=$DB_HOST, Port=$DB_PORT, User=$SPRING_DATASOURCE_USERNAME"
         fi
+        rm -f "$INIT_SQL"
+        unset DNF_DB_INIT_PASSWORD
     else
         echo "Skipping DB init: Missing SPRING_DATASOURCE_URL or USERNAME."
     fi
-else
+elif [ -f "$MARKER_FILE" ]; then
     echo "DB already initialized."
+else
+    echo "Automatic DB initialization disabled."
 fi
 
 # Substitute env vars in Nginx config
 # We use only specific vars to avoid replacing $uri or other nginx variables
-envsubst '${NGINX_PORT} ${SERVER_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+export DNF_NGINX_MAX_BODY_SIZE="${DNF_NGINX_MAX_BODY_SIZE:-33g}"
+envsubst '${NGINX_PORT} ${SERVER_PORT} ${DNF_NGINX_MAX_BODY_SIZE}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Start Nginx
 echo "Starting Nginx..."

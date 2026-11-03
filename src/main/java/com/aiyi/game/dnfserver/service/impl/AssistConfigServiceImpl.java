@@ -62,7 +62,7 @@ public class AssistConfigServiceImpl implements AssistConfigService {
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> saveConfig(Map<String, Object> config) {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
-        if (!accountVO.isAdmin()) {
+        if (!accountVO.isSuperAdmin()) {
             throw new ValidationException("只有最高管理员才能执行此操作");
         }
         if (config == null) {

@@ -1,5 +1,5 @@
 ALTER TABLE `d_taiwan`.`accounts`
-    ADD COLUMN `admin` INT(10) COMMENT '是否是超管',
+    ADD COLUMN `admin` INT(10) COMMENT '0=玩家，1=GM，2=超管',
 ADD COLUMN `parent_uid` INT(10) COMMENT '上级用户ID',
 ADD COLUMN `isRobot` TINYINT(3) COMMENT '是否是机器人' DEFAULT 0;
 

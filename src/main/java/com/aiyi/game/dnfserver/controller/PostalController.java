@@ -2,8 +2,10 @@ package com.aiyi.game.dnfserver.controller;
 
 import com.aiyi.core.beans.ResultPage;
 import com.aiyi.game.dnfserver.conf.NoLogin;
+import com.aiyi.game.dnfserver.conf.GmAllowed;
 import com.aiyi.game.dnfserver.entity.Postal;
 import com.aiyi.game.dnfserver.service.PostalService;
+import com.aiyi.game.dnfserver.security.OwnershipService;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +20,15 @@ import java.util.Date;
  * @Date: Create in 2021/04/13 16:42
  */
 @RestController
+@GmAllowed
 @RequestMapping("api/v1/postal")
 public class PostalController {
 
     @Resource
     private PostalService postalService;
+
+    @Resource
+    private OwnershipService ownership;
 
     @GetMapping
     public ResultPage<Postal> list(String account, Date start,
@@ -40,6 +46,9 @@ public class PostalController {
 
     @PostMapping
     public void sendMail(@RequestBody Postal postal){
+        if (postal.getReceiveCharacNo() == null) throw new IllegalArgumentException("收件角色无效");
+        try { ownership.requireCharacter(Long.parseLong(postal.getReceiveCharacNo())); }
+        catch (NumberFormatException e) { throw new IllegalArgumentException("收件角色无效"); }
         postalService.sendMail(postal);
     }
 

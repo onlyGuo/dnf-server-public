@@ -1,33 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue';
 import Request from '../../../api/Request';
-import { Message } from '@arco-design/web-vue';
+import { Message, Modal } from '@arco-design/web-vue';
 import ItemImg from '../../../components/ItemImg.vue';
-
-type ItemIcon = {
-  path: string;
-  index: number;
-};
-
-type PvfItem = {
-  id: number;
-  rarity?: number;
-  name?: string;
-  type?: string; // equipment/stackable
-  minimumLevel?: number;
-  stackLimit?: number;
-  attachType?: string;
-  usableJobsStr?: string[];
-  description?: string;
-  explain?: string;
-  // equipment / stackable extra fields (backend may return more)
-  equipmentType?: string;
-  equipmentTypeStr?: string;
-  stackableType?: string;
-  stackableTypeStr?: string;
-  icon?: ItemIcon | null;
-  [key: string]: any;
-};
+import ItemTooltip from '../../../components/ItemTooltip.vue';
+import { refreshImagePackIcons } from '../../../components/imagePackRevision';
+import { getJobText, rarityColor, rarityGradient, type PvfItem } from '../../../components/itemDetails';
 
 type PageResult<T> = {
   totalSize: number;
@@ -41,14 +19,39 @@ type PvfInfo = {
   equipmentCount: number;
   itemCount: number;
   canUpload: boolean;
+  available: boolean;
+  gameAvailable: boolean;
+  error?: string;
 };
 
+type PvfUploadResult = {
+  restarted: string[];
+  failed: { process: string; message: string }[];
+  runningCount: number;
+};
+
+type ImagePackStatus = {
+  available: boolean;
+  packCount: number;
+  imageCount: number;
+  revision: string;
+  uploaded: boolean;
+  canUpload: boolean;
+  maxUploadBytes: number;
+  warning?: string;
+};
+
+const imagePackStatus = ref<ImagePackStatus | null>(null);
+
 const pvfInfo = ref<PvfInfo>({
-  size: '0 KB',
+  size: '加载中',
   equipmentCount: 0,
   itemCount: 0,
-  canUpload: false
+  canUpload: false,
+  available: false,
+  gameAvailable: false
 });
+const pvfInfoLoaded = ref(false);
 
 const loading = ref(false);
 const list = ref<PvfItem[]>([]);
@@ -114,126 +117,8 @@ const selectedCategory = computed<Category>(() => {
 
 const groupOpen = ref<Record<string, boolean>>({ equipment: true, stackable: true });
 
-const rarityColor = (rarity?: number) => {
-  switch (Number(rarity ?? 0)) {
-    case 1:
-      return '#15a9e8';
-    case 2:
-      return '#7111ff';
-    case 3:
-      return '#db00fd';
-    case 4:
-      return '#fdb500';
-    case 5:
-      return '#fd0000';
-    case 6:
-      return 'transparent';
-    default:
-      return '#e5e7eb';
-  }
-};
-
-const rarityGradient = (rarity?: number) => {
-  return Number(rarity ?? 0) === 6
-    ? 'linear-gradient(45deg, #db00fd, #f474fb, #7300ff, #5ef2f6)'
-    : '';
-};
-
 const getTypeText = (it: PvfItem) => {
   return it.equipmentTypeStr || it.stackableTypeStr || it.equipmentType || it.stackableType || it.type || '';
-};
-
-const formatAttack = (val: any): string => {
-  if (val == null) return '';
-  if (Array.isArray(val)) return String(val[0] ?? '');
-  return String(val);
-};
-
-const formatSpeed = (val: any): string => {
-  if (val == null) return '';
-  return (Number(val) / 10).toFixed(1).replace(/\.0$/, '') + '%';
-};
-
-const hoverAttackRows = computed(() => {
-  const it = hoverItem.value;
-  if (!it) return [];
-  const rows: Array<{ label: string; value: string }> = [];
-  // 攻击力
-  if (it.physicalAttack != null) rows.push({ label: '物理攻击力', value: formatAttack(it.physicalAttack) });
-  if (it.magicalAttack != null) rows.push({ label: '魔法攻击力', value: formatAttack(it.magicalAttack) });
-  if (it.separateAttack != null) rows.push({ label: '独立攻击力', value: formatAttack(it.separateAttack) });
-  // 防御力
-  if (it.physicalDefense != null) rows.push({ label: '物理防御力', value: formatAttack(it.physicalDefense) });
-  if (it.magicalDefense != null) rows.push({ label: '魔法防御力', value: formatAttack(it.magicalDefense) });
-  // 四维
-  if (it.strength != null) rows.push({ label: '力量', value: String(it.strength) });
-  if (it.intelligence != null) rows.push({ label: '智力', value: String(it.intelligence) });
-  if (it.vitality != null) rows.push({ label: '体力', value: String(it.vitality) });
-  if (it.spirit != null) rows.push({ label: '精神', value: String(it.spirit) });
-  // HP/MP
-  if (it.hpMax != null) rows.push({ label: 'HP最大值', value: String(it.hpMax) });
-  if (it.mpMax != null) rows.push({ label: 'MP最大值', value: String(it.mpMax) });
-  // 抗魔值
-  if (it.antiEvil != null) rows.push({ label: '抗魔值', value: String(it.antiEvil) });
-  return rows;
-});
-
-const hoverBonusRows = computed(() => {
-  const it = hoverItem.value;
-  if (!it) return [];
-  const rows: Array<{ label: string; value: string }> = [];
-  // 速度
-  if (it.attackSpeed != null) rows.push({ label: '攻击速度', value: formatSpeed(it.attackSpeed) });
-  if (it.castSpeed != null) rows.push({ label: '施放速度', value: formatSpeed(it.castSpeed) });
-  if (it.moveSpeed != null) rows.push({ label: '移动速度', value: formatSpeed(it.moveSpeed) });
-  // 暴击
-  if (it.physicalCriticalHit != null) rows.push({ label: '物理暴击率', value: String(it.physicalCriticalHit) + '%' });
-  if (it.magicalCriticalHit != null) rows.push({ label: '魔法暴击率', value: String(it.magicalCriticalHit) + '%' });
-  // 命中/回避/硬直/跳跃
-  if (it.hitRate != null) rows.push({ label: '命中率', value: String(it.hitRate) });
-  if (it.dodge != null) rows.push({ label: '回避率', value: String(it.dodge) });
-  if (it.hitRecovery != null) rows.push({ label: '硬直', value: String(it.hitRecovery) });
-  if (it.jumpPower != null) rows.push({ label: '跳跃力', value: String(it.jumpPower) });
-  // 属性攻击
-  if (it.fireElement != null) rows.push({ label: '火属性攻击', value: '' });
-  if (it.waterElement != null) rows.push({ label: '冰属性攻击', value: '' });
-  if (it.lightElement != null) rows.push({ label: '光属性攻击', value: '' });
-  if (it.darkElement != null) rows.push({ label: '暗属性攻击', value: '' });
-  // 属性强化
-  if (it.fireAttack != null) rows.push({ label: '火属性强化', value: String(it.fireAttack) });
-  if (it.waterAttack != null) rows.push({ label: '冰属性强化', value: String(it.waterAttack) });
-  if (it.lightAttack != null) rows.push({ label: '光属性强化', value: String(it.lightAttack) });
-  if (it.darkAttack != null) rows.push({ label: '暗属性强化', value: String(it.darkAttack) });
-  if (it.allElementalAttack != null) rows.push({ label: '全属性强化', value: String(it.allElementalAttack) });
-  // 属性抗性
-  if (it.fireResistance != null) rows.push({ label: '火属性抗性', value: String(it.fireResistance) });
-  if (it.waterResistance != null) rows.push({ label: '冰属性抗性', value: String(it.waterResistance) });
-  if (it.lightResistance != null) rows.push({ label: '光属性抗性', value: String(it.lightResistance) });
-  if (it.darkResistance != null) rows.push({ label: '暗属性抗性', value: String(it.darkResistance) });
-  if (it.allElementalResistance != null) rows.push({ label: '所有属性抗性', value: String(it.allElementalResistance) });
-  // 异常状态抗性
-  if (it.blindResistance != null) rows.push({ label: '失明抗性', value: String(it.blindResistance) });
-  if (it.lightningResistance != null) rows.push({ label: '感电抗性', value: String(it.lightningResistance) });
-  if (it.burnResistance != null) rows.push({ label: '灼伤抗性', value: String(it.burnResistance) });
-  if (it.freezeResistance != null) rows.push({ label: '冰冻抗性', value: String(it.freezeResistance) });
-  if (it.holdResistance != null) rows.push({ label: '束缚抗性', value: String(it.holdResistance) });
-  if (it.sleepResistance != null) rows.push({ label: '睡眠抗性', value: String(it.sleepResistance) });
-  if (it.bleedingResistance != null) rows.push({ label: '出血抗性', value: String(it.bleedingResistance) });
-  if (it.confuseResistance != null) rows.push({ label: '混乱抗性', value: String(it.confuseResistance) });
-  if (it.curseResistance != null) rows.push({ label: '诅咒抗性', value: String(it.curseResistance) });
-  if (it.stoneResistance != null) rows.push({ label: '石化抗性', value: String(it.stoneResistance) });
-  if (it.allActiveStatusResistance != null) rows.push({ label: '所有异常状态抗性', value: String(it.allActiveStatusResistance) });
-  // 其他
-  if (it.inventoryLimit != null) rows.push({ label: '负重', value: String(it.inventoryLimit) });
-  if (it.hpRegenSpeed != null) rows.push({ label: 'HP恢复速度', value: String(it.hpRegenSpeed) });
-  if (it.mpRegenSpeed != null) rows.push({ label: 'MP恢复速度', value: String(it.mpRegenSpeed) });
-  if (it.roomListMoveSpeedRate != null) rows.push({ label: '城镇移动速度', value: String(it.roomListMoveSpeedRate) });
-  return rows;
-});
-
-const getJobText = (it: PvfItem) => {
-  if (Array.isArray(it.usableJobsStr) && it.usableJobsStr.length) return it.usableJobsStr.join(' / ');
-  return '';
 };
 
 const buildSearchUrl = () => {
@@ -249,16 +134,30 @@ const buildSearchUrl = () => {
 };
 
 const loadPvfInfo = async () => {
-  const res = await Request.get('/api/v1/pvf/info');
+  const res = await Request.get('/api/v1/pvf/info', { timeout: 0 });
   pvfInfo.value = {
-    size: res.data?.size ?? '0 KB',
+    size: res.data?.size ?? '未配置',
     equipmentCount: res.data?.equipmentCount ?? 0,
     itemCount: res.data?.itemCount ?? 0,
-    canUpload: !!res.data?.canUpload
+    canUpload: !!res.data?.canUpload,
+    available: !!res.data?.available,
+    gameAvailable: !!res.data?.gameAvailable,
+    error: res.data?.error
   };
+  pvfInfoLoaded.value = true;
+};
+
+const loadImagePackStatus = async () => {
+  const res = await Request.get<ImagePackStatus>('/api/v1/pvf/imagepacks/status');
+  imagePackStatus.value = res.data;
 };
 
 const loadList = async () => {
+  if (!pvfInfo.value.available) {
+    list.value = [];
+    total.value = 0;
+    return;
+  }
   loading.value = true;
   try {
     const res = await Request.get<PageResult<PvfItem>>(buildSearchUrl());
@@ -298,83 +197,66 @@ const updateHoverPos = (evt: MouseEvent) => {
   hoverPos.value = { x: evt.clientX + 16, y: evt.clientY + 16 };
 };
 
-const rowsForHover = computed(() => {
-  if (!hoverItem.value) return [] as Array<{ k: string; v: string }>;
-  const it = hoverItem.value;
-
-  // Priority fields first (roughly equals the old table columns)
-  const known: Array<[string, any]> = [
-    ['ID', it.id],
-    ['名称', it.name],
-    ['类型', getTypeText(it)],
-    ['等级', it.minimumLevel],
-    ['稀有度', it.rarity],
-    ['交易类型', it.attachType],
-    ['携带上限', it.stackLimit],
-    ['职业', getJobText(it)],
-    ['说明(面板)', it.explain],
-    ['描述', it.description]
-  ];
-
-  const out: Array<{ k: string; v: string }> = [];
-  const usedKeys = new Set<string>();
-
-  for (const [k, v] of known) {
-    if (v == null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
-    out.push({ k, v: Array.isArray(v) ? v.join(', ') : String(v) });
-  }
-
-  // Append any extra fields returned by backend
-  for (const key of Object.keys(it)) {
-    if (
-      ['icon'].includes(key) ||
-      typeof it[key] === 'function'
-    ) {
-      continue;
-    }
-    // skip duplicates already shown
-    if (
-      [
-        'id',
-        'name',
-        'type',
-        'equipmentType',
-        'equipmentTypeStr',
-        'stackableType',
-        'stackableTypeStr',
-        'minimumLevel',
-        'rarity',
-        'attachType',
-        'stackLimit',
-        'usableJobsStr',
-        'description',
-        'explain'
-      ].includes(key)
-    ) {
-      continue;
-    }
-
-    if (usedKeys.has(key)) continue;
-    const v = it[key];
-    if (v == null || v === '') continue;
-
-    if (typeof v === 'object') {
-      try {
-        out.push({ k: key, v: JSON.stringify(v) });
-      } catch {
-        out.push({ k: key, v: String(v) });
-      }
-    } else {
-      out.push({ k: key, v: String(v) });
-    }
-  }
-
-  return out;
-});
-
 // upload
 const fileInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
+const pvfUploadProgress = ref(0);
+const pvfUploadText = computed(() => pvfUploadProgress.value >= 100
+  ? '正在解析 PVF 并重启游戏频道'
+  : `正在上传 ${pvfUploadProgress.value}%`);
+const imagePackInput = ref<HTMLInputElement | null>(null);
+const uploadingImagePacks = ref(false);
+const imagePackProgress = ref(0);
+const imagePackUploadText = computed(() => imagePackProgress.value >= 100
+  ? '正在解析并启用资源'
+  : `正在上传 ${imagePackProgress.value}%`);
+
+const selectImagePacks = () => {
+  if (imagePackStatus.value?.canUpload) imagePackInput.value?.click();
+};
+
+const handleImagePackUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+  try {
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      Message.warning('请选择 ZIP 格式的 ImagePacks2 文件');
+      return;
+    }
+    if (!file.size) {
+      Message.warning('ZIP 文件为空，请重新选择');
+      return;
+    }
+    if (imagePackStatus.value?.maxUploadBytes && file.size > imagePackStatus.value.maxUploadBytes) {
+      Message.warning('ZIP 文件超过允许的上传大小');
+      return;
+    }
+    uploadingImagePacks.value = true;
+    imagePackProgress.value = 0;
+    const data = new FormData();
+    data.append('file', file);
+    const res = await Request.post<ImagePackStatus>('/api/v1/pvf/imagepacks/upload', data, {
+      timeout: 0,
+      onUploadProgress: progress => {
+        if (progress.total) imagePackProgress.value = Math.round(progress.loaded * 100 / progress.total);
+      }
+    });
+    imagePackStatus.value = { ...res.data, canUpload: true };
+    refreshImagePackIcons(res.data.revision);
+    if (res.data.warning) {
+      Modal.warning({ title: 'ImagePacks2 已更新', content: res.data.warning });
+    } else {
+      Message.success(`ImagePacks2 已更新，共 ${res.data.packCount} 个 NPK 文件`);
+    }
+  } catch (e: any) {
+    // The request interceptor displays the server's error.
+  } finally {
+    uploadingImagePacks.value = false;
+    target.value = '';
+  }
+};
+
 const selectPvfFile = () => {
   if (!pvfInfo.value.canUpload) return;
   fileInput.value?.click();
@@ -385,16 +267,39 @@ const handleFileUpload = async (event: Event) => {
   const file = target.files?.[0];
   if (!file) return;
 
-  uploading.value = true;
   try {
+    if (!file.name.toLowerCase().endsWith('.pvf') || !file.size) {
+      Message.warning('请选择非空的 PVF 文件');
+      return;
+    }
+    if (file.size >= 2147483647) {
+      Message.warning('PVF 文件过大，当前解析器无法读取');
+      return;
+    }
+    uploading.value = true;
+    pvfUploadProgress.value = 0;
     const data = new FormData();
     data.append('file', file);
-    await Request.post('/api/v1/pvf/upload', data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    const res = await Request.post<PvfUploadResult>('/api/v1/pvf/upload', data, {
+      timeout: 0,
+      onUploadProgress: progress => {
+        if (progress.total) pvfUploadProgress.value = Math.round(progress.loaded * 100 / progress.total);
+      }
     });
-    Message.success('上传成功，PVF已更新');
+    if (res.data.failed.length) {
+      Modal.warning({
+        title: 'PVF 已更新，部分频道重启失败',
+        content: `请在频道管理中检查：${res.data.failed.map(item => `${item.process}（${item.message}）`).join('；')}`
+      });
+    } else if (!res.data.runningCount) {
+      Message.info('PVF 已更新，没有正在运行的游戏频道，下次启动时生效');
+    } else {
+      Message.success(`PVF 已更新，已触发 ${res.data.restarted.length} 个游戏频道重启`);
+    }
     await loadPvfInfo();
     await loadList();
+  } catch (e: any) {
+    // The request interceptor displays the server's error.
   } finally {
     uploading.value = false;
     // reset input so selecting the same file again triggers change
@@ -471,6 +376,11 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   try {
+    await loadImagePackStatus();
+  } catch (e: any) {
+    // The request interceptor displays the server's error.
+  }
+  try {
     await loadPvfInfo();
   } catch (e: any) {
     Message.error(e?.message || 'PVF信息加载失败');
@@ -482,15 +392,32 @@ onMounted(async () => {
 <template>
   <div ref="rootEl" class="pvf-page" @mousemove="updateHoverPos">
     <div ref="headerEl" class="pvf-header">
-      <div class="pvf-title">PVF 管理</div>
-      <div class="pvf-sub">
-        当前PVF：{{ pvfInfo.size }} · 装备：{{ pvfInfo.equipmentCount }} · 道具：{{ pvfInfo.itemCount }}
+      <div class="pvf-heading">
+        <div class="pvf-title">PVF 管理</div>
+        <div class="pvf-sub">
+          当前PVF：{{ pvfInfo.size }} · 装备：{{ pvfInfo.equipmentCount }} · 道具：{{ pvfInfo.itemCount }}
+          <span v-if="uploading"> · {{ pvfUploadText }}</span>
+        </div>
+        <div v-if="pvfInfoLoaded && (pvfInfo.error || !pvfInfo.gameAvailable)" class="pvf-sub">
+          {{ pvfInfo.error || '未发现可管理的游戏服务，无法上传 PVF' }}
+        </div>
+        <div class="pvf-sub">
+          ImagePacks2：{{ !imagePackStatus ? '加载中' : imagePackStatus.available ? `${imagePackStatus.packCount} 个 NPK 文件` : '未配置' }}
+          <span v-if="uploadingImagePacks"> · {{ imagePackUploadText }}</span>
+        </div>
+        <div v-if="imagePackStatus?.warning" class="pvf-sub">{{ imagePackStatus.warning }}</div>
       </div>
       <div class="pvf-actions">
-        <a-button type="primary" :disabled="!pvfInfo.canUpload || uploading" @click="selectPvfFile">
+        <a-tooltip content="支持包含 ImagePacks2 文件夹或直接包含其内容的 ZIP；校验成功后新的 NPK 会替换旧图标资源，其他文件保留。">
+          <a-button :loading="uploadingImagePacks" :disabled="!imagePackStatus?.canUpload || uploading" @click="selectImagePacks">
+            上传 ImagePacks2 ZIP
+          </a-button>
+        </a-tooltip>
+        <input ref="imagePackInput" type="file" accept=".zip,application/zip" style="display: none" @change="handleImagePackUpload" />
+        <a-button type="primary" :loading="uploading" :disabled="!pvfInfo.canUpload || uploadingImagePacks" @click="selectPvfFile">
           上传新PVF
         </a-button>
-        <input ref="fileInput" type="file" style="display: none" @change="handleFileUpload" />
+        <input ref="fileInput" type="file" accept=".pvf" style="display: none" @change="handleFileUpload" />
       </div>
     </div>
 
@@ -501,7 +428,7 @@ onMounted(async () => {
       class="pvf-alert"
     >
       <template #title>注意</template>
-      上传新的 PVF 会影响全局材料、任务等信息，可能导致系统异常，仅最高管理可操作。
+      上传新的 PVF 会替换游戏版本文件并重启正在运行的频道，在线玩家会断开；仅最高管理员可操作。
     </a-alert>
 
     <div ref="bodyEl" class="pvf-body">
@@ -566,7 +493,7 @@ onMounted(async () => {
               @mouseleave="hoverItem = null"
             >
               <div class="item-icon">
-                <ItemImg :icon="(it.icon || { path: '', index: 0 })" :rarity="it.rarity ?? 0" />
+                <ItemImg :icon="(it.icon || { path: '', index: 0 })" :icon-marks="it.iconMarks" :rarity="it.rarity ?? 0" />
               </div>
 
               <div class="item-main">
@@ -611,59 +538,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div v-if="hoverItem" class="hover-panel" :style="{ left: hoverPos.x + 'px', top: hoverPos.y + 'px' }">
-        <div class="hover-left">
-          <ItemImg :icon="(hoverItem.icon || { path: '', index: 0 })" :rarity="hoverItem.rarity ?? 0" style="width: 48px; height: 48px" />
-        </div>
-        <div class="hover-right">
-          <div class="hover-title-row">
-            <span
-              class="hover-title"
-              :style="
-                hoverItem.rarity === 6
-                  ? { backgroundImage: rarityGradient(hoverItem.rarity), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
-                  : { color: rarityColor(hoverItem.rarity) }
-              "
-            >{{ hoverItem.name || '未命名' }}</span>
-            <span class="hover-item-id">#{{ hoverItem.id }}</span>
-          </div>
-          <div class="hover-rarity" :style="{ color: rarityColor(hoverItem.rarity) }">
-            {{ hoverItem.rarityName || '普通' }}
-          </div>
-          <div class="hover-info">
-            <template v-if="hoverItem.weight"><span>{{ (hoverItem.weight / 1000).toFixed(1).replace(/\.0$/, '') }}kg</span></template>
-            <template v-if="hoverItem.price"><span class="hover-price">{{ hoverItem.price }}金币</span></template>
-          </div>
-          <div class="hover-info">
-            <template v-if="hoverItem.equipmentTypeStr"><span>{{ hoverItem.equipmentTypeStr }}</span></template>
-            <template v-if="hoverItem.itemGroupStr"><span>{{ hoverItem.itemGroupStr }}</span></template>
-          </div>
-          <div class="hover-info" v-if="getJobText(hoverItem)">
-            <span class="hover-jobs">可用职业：{{ getJobText(hoverItem) }}</span>
-          </div>
-          <div class="hover-info">
-            <template v-if="hoverItem.durability"><span>耐久度：{{ hoverItem.durability }}/{{ hoverItem.durability }}</span></template>
-            <template v-if="hoverItem.stackLimit && hoverItem.stackLimit > 1"><span>堆叠上限：{{ hoverItem.stackLimit }}</span></template>
-            <template v-if="hoverItem.attachTypeStr"><span class="hover-attach" :class="{ 'attach-trade': hoverItem.attachTypeStr === '不可交易' }">{{ hoverItem.attachTypeStr }}</span></template>
-          </div>
-          <div class="hover-info">
-            <template v-if="hoverItem.minimumLevel"><span>Lv{{ hoverItem.minimumLevel }}级以上可以使用</span></template>
-          </div>
-          <div class="hover-stats" v-if="hoverAttackRows.length">
-            <div class="hover-stat-row" v-for="row in hoverAttackRows" :key="row.label">
-              <span class="hover-stat-label">{{ row.label }}</span>
-              <span class="hover-stat-value">+{{ row.value }}</span>
-            </div>
-          </div>
-          <div class="hover-bonus" v-if="hoverBonusRows.length">
-            <div class="hover-bonus-row" v-for="row in hoverBonusRows" :key="row.label">
-              {{ row.label }}{{ row.value ? ' +' + row.value : '' }}
-            </div>
-          </div>
-          <div class="hover-explain" v-if="hoverItem.explain">{{ hoverItem.explain.replaceAll('%%', '%').replaceAll('\\n', '\n') }}</div>
-          <div class="hover-desc" v-if="hoverItem.description">{{ hoverItem.description.replaceAll('%%', '%').replaceAll('\\n', '\n') }}</div>
-        </div>
-      </div>
+      <ItemTooltip v-if="hoverItem" :item="hoverItem" :x="hoverPos.x" :y="hoverPos.y" />
     </div>
   </div>
 </template>
@@ -682,10 +557,15 @@ onMounted(async () => {
 .pvf-header {
   flex: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 10px;
 }
+
+.pvf-heading { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pvf-sub { color: #94a3b8; font-size: 12px; }
+.pvf-actions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 .pvf-alert {
   flex: none;
@@ -966,121 +846,4 @@ onMounted(async () => {
   }
 }
 
-.hover-panel {
-  position: fixed;
-  z-index: 9999;
-  background: rgba(17, 24, 39, 0.96);
-  color: #e5e7eb;
-  padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-  max-width: 420px;
-  pointer-events: none;
-  display: flex;
-  gap: 12px;
-}
-
-.hover-left {
-  flex: none;
-}
-
-.hover-right {
-  flex: 1;
-  min-width: 0;
-}
-
-.hover-title-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.hover-title {
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.hover-item-id {
-  color: #64748b;
-  font-size: 11px;
-}
-
-.hover-rarity {
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.hover-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #9ca3af;
-  margin-bottom: 2px;
-}
-
-.hover-price {
-  color: #fbbf24;
-}
-
-.hover-jobs {
-  color: #cbd5e1;
-  text-align: right;
-}
-
-.hover-attach {
-  color: #9ca3af;
-}
-
-.hover-attach.attach-trade {
-  color: #ef4444;
-}
-
-.hover-stats {
-  margin-top: 6px;
-  margin-bottom: 2px;
-}
-
-.hover-stat-row {
-  font-size: 12px;
-  margin-bottom: 1px;
-}
-
-.hover-stat-label {
-  color: #d1d5db;
-}
-
-.hover-stat-value {
-  color: #e2e8f0;
-}
-
-.hover-bonus {
-  margin-top: 4px;
-  margin-bottom: 2px;
-}
-
-.hover-bonus-row {
-  font-size: 12px;
-  color: #60a5fa;
-  margin-bottom: 1px;
-}
-
-.hover-explain {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #60a5fa;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.hover-desc {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #6b7280;
-  font-style: italic;
-  line-height: 1.4;
-  white-space: pre-wrap;
-}
 </style>

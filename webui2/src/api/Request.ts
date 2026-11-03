@@ -77,16 +77,19 @@ class Request {
                         router.replace('/login')
                         break
                     case 403:
-                        msg = '拒绝访问 (403)'
+                        msg = error.response?.data?.message || '拒绝访问 (403)'
                         break
                     case 404:
                         msg = '请求资源不存在 (404)'
                         break
+                    case 413:
+                        msg = error.response?.data?.message || '文件超过服务器允许的上传大小 (413)'
+                        break
                     case 500:
-                        msg = error.response.data.message || error.message || '服务器内部错误 (500)'
+                        msg = error.response?.data?.message || error.message || '服务器内部错误 (500)'
                         break
                     default:
-                        msg = error.response.data.message || error.message || '网络连接故障'
+                        msg = error.response?.data?.message || error.message || '网络连接故障'
                 }
                 ArcoVue.Message.error(msg)
                 return Promise.reject(error)

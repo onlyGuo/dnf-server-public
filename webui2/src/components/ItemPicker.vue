@@ -22,6 +22,7 @@ type Item = {
 	description?: string;
 	explain?: string;
 	icon?: ItemIcon | null;
+	iconMarks?: ItemIcon[];
 };
 
 const props = withDefaults(defineProps<{
@@ -578,7 +579,7 @@ onMounted(() => {
 									@click="onSelectItem(item)"
 								>
 									<div class="item-icon">
-										<ItemImg :icon="item.icon" :rarity="item.rarity ?? 0" />
+										<ItemImg :icon="item.icon" :icon-marks="item.iconMarks" :rarity="item.rarity ?? 0" />
 									</div>
 									<div class="item-main">
 										<div
@@ -607,7 +608,7 @@ onMounted(() => {
 					</div>
 					<div v-if="hoverItem" class="hover-panel" :style="{ left: hoverPos.x + 'px', top: hoverPos.y + 'px' }">
 						<div class="hover-panel-icon-col">
-							<ItemImg :icon="hoverItem.icon" :rarity="hoverItem.rarity ?? 0" style="width: 48px; height: 48px;" />
+							<ItemImg :icon="hoverItem.icon" :icon-marks="hoverItem.iconMarks" :rarity="hoverItem.rarity ?? 0" style="width: 48px; height: 48px;" />
 						</div>
 						<div class="hover-panel-content-col">
 							<div class="hover-title-row">

@@ -15,6 +15,7 @@ import com.aiyi.game.dnfserver.entity.task.TaskType;
 import com.aiyi.game.dnfserver.pvf.PvfManager;
 import com.aiyi.game.dnfserver.service.CharacService;
 import com.aiyi.game.dnfserver.service.PostalService;
+import com.aiyi.game.dnfserver.security.OwnershipService;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
 import com.xiaoyouma.dnf.parser.pvf.model.Pvf;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,9 @@ public class CharacServiceImpl implements CharacService {
     @Resource
     private PostalService postalService;
 
+    @Resource
+    private OwnershipService ownership;
+
     @Override
     public ResultPage<CharacInfo> list(Integer levMin, Integer levMax, Integer job,
                                        String name, String account, Integer page, Integer pageSize) {
@@ -68,9 +72,8 @@ public class CharacServiceImpl implements CharacService {
         AccountVO accountVO = accountVODao.get(ThreadUtil.getUserId());
         if (!StringUtils.isEmpty(account)){
             WherePrams where1 = Method.where(AccountVO::getAccountname, C.LIKE, account);
-            if (!accountVO.isAdmin()){
-                where1.and(Method.where(AccountVO::getParentUid, C.EQ, ThreadUtil.getUserId())
-                        .or(AccountVO::getUid, C.EQ, ThreadUtil.getUserId()));
+            if (!accountVO.isSuperAdmin()){
+                where1.and(AccountVO::getParentUid, C.EQ, ThreadUtil.getUserId());
             }
             List<Long> ids = accountVODao.list(where1)
                     .stream().map(AccountVO::getUid).collect(Collectors.toList());
@@ -79,12 +82,12 @@ public class CharacServiceImpl implements CharacService {
             }
             where.and(CharacInfo::getMid, C.IN, ids);
         }else{
-            if (!accountVO.isAdmin()){
-                // 非超管只能查看自己和下级账号的角色
+            if (!accountVO.isSuperAdmin()){
+                // 非超管只能查看下级账号的角色
                 List<Long> collect = accountVODao.list(Method
-                                .where(AccountVO::getParentUid, C.EQ, ThreadUtil.getUserId())
-                                .or(AccountVO::getUid, C.EQ, ThreadUtil.getUserId()))
+                                .where(AccountVO::getParentUid, C.EQ, ThreadUtil.getUserId()))
                         .stream().map(AccountVO::getUid).collect(Collectors.toList());
+                if (collect.isEmpty()) return new ResultPage<>(0, page, pageSize, new ArrayList<>());
                 where.and(CharacInfo::getMid, C.IN, collect);
             }
         }
@@ -109,6 +112,7 @@ public class CharacServiceImpl implements CharacService {
         if (null == accountVO){
             return new LinkedList<>();
         }
+        ownership.requireAccount(accountVO.getUid());
 
         List<CharacInfo> list = characInfoDao.list(Method
                 .where(CharacInfo::getMid, C.EQ, accountVO.getUid()));
@@ -121,10 +125,7 @@ public class CharacServiceImpl implements CharacService {
 
     @Override
     public void update(CharacInfo info) {
-        CharacInfo characInfo = characInfoDao.get(info.getCharacNo());
-        if (null == characInfo){
-            return;
-        }
+        CharacInfo characInfo = ownership.requireCharacter(info.getCharacNo());
         // 三速
         characInfo.setAttackSpeed(info.getAttackSpeed());
         characInfo.setCastSpeed(info.getCastSpeed());
@@ -152,6 +153,7 @@ public class CharacServiceImpl implements CharacService {
 
     @Override
     public void overTasks(Long characId) {
+        ownership.requireCharacter(characId);
         List<TaskVO> tasks = listNoOverTasks(characId);
         tasks.forEach(task -> {
             if (task.getType().isCatFinish()){
@@ -180,6 +182,7 @@ public class CharacServiceImpl implements CharacService {
             return new ArrayList<>();
         }
         Pvf pvf = pvfManager.getPvf();
+        if (pvf == null) throw new IllegalArgumentException("游戏服务中未配置可解析的 Script.pvf，无法读取任务资料");
         JSONObject questList = pvf.getScript("n_quest/quest.lst");
         List<TaskVO> tasks = new ArrayList<>();
         maps.forEach(map -> {

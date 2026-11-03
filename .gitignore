@@ -7,3 +7,5 @@ target/
 logs/
 /dnf-server-web
 /data/
+/dnf_mock/
+/src/main/resources/private.key*
