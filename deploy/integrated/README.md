@@ -40,8 +40,10 @@ DNF 的其他内部服务及随机 UDP 端口原本被 Docker 网络隔离，切
 在支持 systemd、cgroup v2 和 nftables socket cgroupv2 的 Linux 宿主机上，先安装守护服务：
 
 ```bash
-sudo install -m 755 deploy/integrated/host-guard.sh /usr/local/sbin/dnf-host-guard
-sudo install -m 644 deploy/integrated/dnf-host-guard.service /etc/systemd/system/dnf-host-guard.service
+# 从服务项目的根目录执行；从平台项目执行时改为 deploy/integrated。
+INTEGRATION_DIR=build/Centos7-DNF/web/integration
+sudo install -m 755 "$INTEGRATION_DIR/host-guard.sh" /usr/local/sbin/dnf-host-guard
+sudo install -m 644 "$INTEGRATION_DIR/dnf-host-guard.service" /etc/systemd/system/dnf-host-guard.service
 # 按实际接口和来源填写 /etc/dnf-host-guard.conf；容器名默认为 dnf。
 sudo systemctl daemon-reload
 sudo systemctl enable --now dnf-host-guard.service
@@ -49,7 +51,7 @@ sudo systemctl enable --now dnf-host-guard.service
 
 例如 `/etc/dnf-host-guard.conf` 可包含 `DNF_CONTAINER_NAME=dnf`、`DNF_HOST_GUARD_LAN_IF=实际网卡名`、`DNF_HOST_GUARD_LAN_IPV4=实际局域网IPv4网段` 和 `DNF_HOST_GUARD_LAN_IPV6=实际局域网IPv6网段`。未配置的 LAN 网段不会开放；配置了 LAN 网卡时还允许该接口上的 ULA 和链路本地 IPv6。启动游戏容器后，入口脚本会等待守护服务为该次启动的 cgroup 安装规则；规则未成功安装时，游戏不会启动。应验证允许与拒绝的来源、游戏 TCP/UDP 端口以及其他宿主机服务，再投入使用。
 
-如果宿主机使用 firewalld，还需在容器启动且守护规则就绪后，允许对应端口通过活动区域。例如，`sudo DNF_SERVER_GROUP=3 DNF_ADMIN_PORT=8003 DNF_FIREWALL_ZONE=public bash deploy/integrated/configure-firewalld.sh /root/dnf-firewall-change` 会同时配置运行时和永久规则，不重载防火墙，并将新增项记录在指定目录。脚本要求宿主机守护规则已就绪；数据库端口的来源限制由守护规则执行，Web 不按来源限制。firewalld 的端口规则作用于整个宿主机，应避免其他服务复用这些端口。
+如果宿主机使用 firewalld，还需在容器启动且守护规则就绪后，允许对应端口通过活动区域。例如，`sudo DNF_SERVER_GROUP=3 DNF_ADMIN_PORT=8003 DNF_FIREWALL_ZONE=public bash "$INTEGRATION_DIR/configure-firewalld.sh" /root/dnf-firewall-change` 会同时配置运行时和永久规则，不重载防火墙，并将新增项记录在指定目录。脚本要求宿主机守护规则已就绪；数据库端口的来源限制由守护规则执行，Web 不按来源限制。firewalld 的端口规则作用于整个宿主机，应避免其他服务复用这些端口。
 
 宿主机网络下新增频道不需要重新配置 Docker 端口；新增大区或游戏版本所需的不同端口仍需调整防火墙与上游转发。启动前还要确认宿主机没有其他服务占用 DNF 的端口。Docker 的 host 网络会共享网络栈，必须使用可信镜像和容器。
 
