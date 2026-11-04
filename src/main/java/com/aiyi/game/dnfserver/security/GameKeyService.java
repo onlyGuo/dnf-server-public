@@ -63,20 +63,17 @@ public class GameKeyService {
     private final Path gameDir;
     private final Path dataDir;
     private final Path configuredKey;
-    private final Path configuredGatewayKey;
     private final ChannelService channels;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
 
     public GameKeyService(ChannelService channels,
                           @Value("${dnf.channels.game-dir:/home/neople/game}") String gameDir,
                           @Value("${dnf.channels.data-dir:/data}") String dataDir,
-                          @Value("${dnf.private-key-path:}") String configuredKey,
-                          @Value("${dnf.keys.gateway-private-key-path:}") String gatewayKey) {
+                          @Value("${dnf.private-key-path:}") String configuredKey) {
         this.channels = channels;
         this.gameDir = Paths.get(gameDir).toAbsolutePath().normalize();
         this.dataDir = Paths.get(dataDir).toAbsolutePath().normalize();
         this.configuredKey = configuredKey == null || configuredKey.trim().isEmpty() ? null : Paths.get(configuredKey).toAbsolutePath().normalize();
-        this.configuredGatewayKey = gatewayKey == null || gatewayKey.trim().isEmpty() ? null : Paths.get(gatewayKey).toAbsolutePath().normalize();
     }
 
     public byte[] encryptForGame(byte[] plaintext) {
@@ -96,7 +93,6 @@ public class GameKeyService {
 
     public Map<String, Object> status() {
         boolean gameAvailable = channels.canReloadPvf();
-        Boolean gatewayRegistered = gameAvailable ? channels.legacyGatewayRegistered() : null;
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("gameAvailable", gameAvailable);
         result.put("canManage", gameAvailable && Files.isDirectory(dataDir) && Files.isDirectory(gameDir));
@@ -119,15 +115,8 @@ public class GameKeyService {
                 boolean runtimeMatches = publicEquals(gameDir.resolve("publickey.pem"), publicKey);
                 boolean persistentMatches = publicEquals(dataDir.resolve("publickey.pem"), publicKey);
                 boolean privateMatches = privateEquals(dataDir.resolve("privatekey.pem"), publicKey);
-                boolean gatewayMatches = true;
-                if (Boolean.TRUE.equals(gatewayRegistered)) {
-                    try { gatewayMatches = samePublic(publicKey(readPrivate(gatewayKeyPath())), publicKey); }
-                    catch (Exception e) { gatewayMatches = false; }
-                }
-                result.put("gatewayRegistered", gatewayRegistered);
-                result.put("matchesGame", runtimeMatches && persistentMatches && privateMatches && gatewayMatches);
-                if (!runtimeMatches || !persistentMatches || !privateMatches || !gatewayMatches) result.put("message", "游戏或原网关密钥未同步，请上传或重新生成公私钥对");
-                else if (gameAvailable && gatewayRegistered == null) result.put("message", "无法检查原网关状态，请刷新后重试");
+                result.put("matchesGame", runtimeMatches && persistentMatches && privateMatches);
+                if (!runtimeMatches || !persistentMatches || !privateMatches) result.put("message", "游戏密钥未同步，请上传或重新生成公私钥对");
             } else {
                 result.put("message", "未发现本地游戏服务，无法检查游戏公钥或在此更换密钥");
             }
@@ -176,12 +165,11 @@ public class GameKeyService {
         byte[] privatePem = privatePem(privateKey);
         byte[] publicPem = pem("PUBLIC KEY", publicKey.getEncoded());
         try {
-            Map<String, Object> result = channels.installKeyAndRestart(gatewayRegistered -> {
+            Map<String, Object> result = channels.installKeyAndRestart(() -> {
                 List<FileReplacement> replacements = new ArrayList<>();
                 Files.createDirectories(Paths.get("data"));
                 add(replacements, dataDir.resolve("publickey.pem"), publicPem, false);
                 add(replacements, gameDir.resolve("publickey.pem"), publicPem, false);
-                if (gatewayRegistered) add(replacements, gatewayKeyPath(), privatePem, true);
                 add(replacements, dataDir.resolve("privatekey.pem"), privatePem, true);
                 add(replacements, Paths.get("data", "private.key").toAbsolutePath().normalize(), privatePem, true);
                 lock.writeLock().lock();
@@ -205,14 +193,6 @@ public class GameKeyService {
         if (configuredKey != null) return configuredKey;
         if (Files.isRegularFile(webKey)) return webKey;
         return gameKey;
-    }
-
-    private Path gatewayKeyPath() {
-        if (configuredGatewayKey != null) return configuredGatewayKey;
-        if (gameDir.endsWith(Paths.get("home", "neople", "game"))) {
-            return gameDir.getParent().getParent().getParent().resolve("root/privatekey.pem");
-        }
-        throw new IllegalStateException("发现原游戏网关，请通过 DNF_GATE_PRIVATE_KEY_PATH 配置其私钥位置后再更换");
     }
 
     private static RSAPrivateCrtKey readPrivate(Path path) throws Exception {

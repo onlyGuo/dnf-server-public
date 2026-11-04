@@ -75,6 +75,23 @@ public class ChannelServiceTest {
     private void clearLog() throws Exception { Files.write(log, new byte[0]); }
     private List<String> operations() throws Exception { return Files.readAllLines(log, StandardCharsets.UTF_8); }
 
+    @Test public void keyInstallationRestartsOnlyRunningGameChannels() throws Exception {
+        Files.write(supervisorState.resolve("dnf_channel:game_siroco11"), "RUNNING\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(supervisorState.resolve("channel_admin_53"), "RUNNING\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(supervisorState.resolve("channel_admin_54"), "STOPPED\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(supervisorState.resolve("dnf:bridge"), "RUNNING\n".getBytes(StandardCharsets.UTF_8));
+        Path installed = root.resolve("keys-installed");
+
+        Map<String, Object> result = service.installKeyAndRestart(() -> Files.createFile(installed));
+
+        assertTrue(Files.exists(installed));
+        assertEquals(2, result.get("runningCount"));
+        assertTrue(((List<?>) result.get("failed")).isEmpty());
+        assertEquals(2, operations().size());
+        assertTrue(operations().contains("restart dnf_channel:game_siroco11"));
+        assertTrue(operations().contains("restart channel_admin_53"));
+    }
+
     @Test public void externalGlobalIpChangeUpdatesSharedAddressesForAllChannels() throws Exception {
         service.save(53, settings(true, "INHERIT", ""));
         service.save(54, settings(true, "STATIC", "198.51.100.4"));

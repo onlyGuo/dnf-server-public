@@ -1,125 +1,84 @@
 # DNF 服务器管理平台
 
-DNF 服务器管理平台（简称**平台**）是一个开放的 Web 后台，用于管理 DNF 游戏服务（简称**服务**）。平台既提供 GM 日常运营功能，也覆盖服务运维、登录器、客户端配置和数据库管理，让运营人员通过统一界面完成常用操作。
+一个开放的 DNF Web 后台，集游戏运营、服务运维、登录器和客户端配置于一体。在浏览器里管理玩家、物品和频道，让开服与日常维护更直观。
 
-平台和服务是独立项目：
+- [DNF 一体化服务](https://github.com/onlyGuo/dnf)：一个 Docker 容器运行游戏服务、数据库和本平台。
+- [DNFLogin 登录器](https://github.com/onlyGuo/DNFLogin)：连接平台，提供游戏登录、客户端下载和自动更新。
+- [PVF/NPK 解析器](https://github.com/onlyGuo/dnf_parser)：解析游戏数据和物品图标。
 
-- [DNF 服务](https://github.com/onlyGuo/dnf)：基于 [1995chen/dnf](https://github.com/1995chen/dnf) 的服务项目，提供集成平台的一体化镜像。
-- [DNFLogin 登录器](https://github.com/onlyGuo/DNFLogin)：配套的客户端登录器，读取平台提供的登录器和版本配置。
-- [PVF/NPK 解析器](https://github.com/onlyGuo/dnf_parser)：平台使用的资源解析项目。
+## 能做什么
 
-## 部署方式
-
-| 方式 | 可用能力 |
-| --- | --- |
-| 平台单独运行或单独使用 Docker | 连接已有游戏数据库，管理账号、角色、邮件等数据库功能；未发现服务时，文件和进程管理不可用。 |
-| 平台与服务部署在同一宿主机 | 平台发现服务目录和 Supervisor 后，还可管理频道、PVF 和密钥。 |
-| 平台与服务集成在同一个容器 | 一个容器运行整套服务和平台，可使用上述服务管理功能。 |
-
-仅让独立平台容器使用 `host` 网络并不会自动共享宿主机的文件或进程。要管理服务，还需要平台能访问对应目录及 Supervisor；不需要给平台挂载 Docker socket。
-
-## 功能预览
-
-### 玩家、角色与邮件
-
-管理账号、角色属性、任务和游戏邮件；发送物品时可按名称、分类或 ID 查找，并查看物品属性。角色背包与快捷栏可以同时查看和编辑；编辑前需要退出游戏，避免游戏内存与数据库互相覆盖。
-
-![角色管理](doc/screenshots/role-management.png)
-
-![角色背包与快捷栏](doc/screenshots/inventory-management.png)
-
-![发送邮件与选择物品](doc/screenshots/mail-items.png)
-
-### PVF 与物品图标
-
-从服务目录读取 `Script.pvf`，浏览装备和道具属性。超管可上传新 PVF：校验成功后更新服务文件及已有持久化副本，并重启运行中的频道。
-
-物品图标从 `data/ImagePacks2` 中的 NPK 读取。上传 ZIP 时，既支持压缩包包含 `ImagePacks2/` 文件夹，也支持直接包含文件夹内的内容；新 NPK 校验成功后替换旧资源并立即生效。
-
-![PVF 管理](doc/screenshots/pvf-management.png)
-
-### 频道与动态地址
-
-在页面新增、编辑、启用、停用和重启频道；默认通告地址和各频道地址可分别使用固定 IPv4 或 DDNS。页面显示总内存、已用内存、频道进程占用以及每频道约 1 GB 的预估。
-
-频道类型可选择游戏默认值、地下城、交易、亡者峡谷、普通决斗场、自由决斗场或公平决斗场；指定类型时只更新运行状态表。单个频道地址变化时只重启该频道，无需重启容器或重新启动整套服务。默认地址影响共用中继和 STUN 地址，因此变化时还会重新加载相关公共进程和已启用频道。
+- **玩家运营**：管理账号、角色和属性，发送游戏邮件及物品，完成任务。
+- **背包与快捷栏**：查看物品属性、编辑物品，在背包和快捷栏间移动。
+- **频道管理**：新增、编辑、启用、停用和重启频道，选择频道类型，查看内存占用；默认地址和各频道支持固定 IP 与 DDNS。
+- **PVF 与图标**：浏览装备和道具；上传 PVF 更新服务，上传 `ImagePacks2` ZIP 更新物品图标。
+- **登录器与客户端**：配置登录器背景、下载和更新版本，集中设置等级上限、服务器地址、画质与自动拾取等。
+- **数据库与密钥**：浏览及编辑数据库，执行 SQL，管理游戏登录公私钥。
 
 ![频道管理](doc/screenshots/channel-management.png)
 
-### 登录器与客户端配置
+## 快速开始
 
-在平台配置登录器标题、背景、整包下载地址和版本更新列表，配套登录器根据配置获取更新。客户端配置集中管理服务器地址、等级上限、画质、自动拾取等选项，并由配套客户端读取；具体生效范围取决于客户端实现。
-
-![登录器配置](doc/screenshots/launcher-settings.png)
-
-![版本管理](doc/screenshots/launcher-versions.png)
-
-![客户端配置](doc/screenshots/client-settings.png)
-
-### 数据库与密钥
-
-超管可浏览数据库和表、查看结构、编辑表数据并执行 SQL。密钥管理支持上传匹配的 RSA 公私钥对或重新生成 2048 位公私钥，并同步平台、服务和原网关的密钥；更换后会重启运行中的相关进程。
-
-![数据库管理](doc/screenshots/database-management.png)
-
-账号权限由后台控制：`admin=2` 为超管、`1` 为 GM、`0` 为普通玩家。普通注册不接受客户端提交的管理员权限；首次初始化管理员按平台规则处理。管理员也可以使用登录器作为普通玩家进入游戏。
-
-## 已发布镜像
-
-| 镜像 | 用途 | 已发布架构 |
-| --- | --- | --- |
-| `guoshengkai/dnf-server:latest` | 独立平台 | `linux/amd64` |
-| `guoshengkai/dnf-server:dnf-integrated` | 集成平台的服务 | `linux/amd64` |
+已有游戏服务和数据库时，可以单独启动平台。将下面的数据库地址、账号和密码改成实际值：
 
 ```bash
-docker pull guoshengkai/dnf-server:latest
-docker pull guoshengkai/dnf-server:dnf-integrated
-```
-
-固定版本和发布信息见 [Docker Hub](https://hub.docker.com/r/guoshengkai/dnf-server)。集成镜像的完整 `docker run`、宿主机防火墙和新增频道端口示例见 [服务项目 README](https://github.com/onlyGuo/dnf) 和 [集成部署说明](deploy/integrated/README.md)。
-
-## 独立平台 Docker 部署
-
-平台连接已有的游戏数据库。在项目目录外创建环境变量文件，例如 `/etc/dnf-platform.env`：
-
-```dotenv
-SPRING_DATASOURCE_URL=jdbc:mysql://数据库地址:端口/dnf_service?useUnicode=true&characterEncoding=utf8&autoReconnect=true
-SPRING_DATASOURCE_USERNAME=数据库用户名
-SPRING_DATASOURCE_PASSWORD=数据库密码
-```
-
-```bash
-mkdir -p "$PWD/platform-data"
+mkdir -p platform-data
 docker run -d --name dnf-platform --restart unless-stopped \
   -p 8003:80 \
-  --env-file /etc/dnf-platform.env \
+  -e 'SPRING_DATASOURCE_URL=jdbc:mysql://数据库地址:3000/dnf_service?useUnicode=true&characterEncoding=utf8&autoReconnect=true' \
+  -e 'SPRING_DATASOURCE_USERNAME=数据库用户名' \
+  -e 'SPRING_DATASOURCE_PASSWORD=数据库密码' \
   -v "$PWD/platform-data:/app/data" \
   guoshengkai/dnf-server:latest
 ```
 
-访问 `http://服务器地址:8003/login`。平台容器内 Nginx 默认监听 80，Java 服务默认监听 9001，可分别通过 `NGINX_PORT` 和 `SERVER_PORT` 调整。环境变量文件包含数据库凭据，应限制读取权限。
+打开 `http://服务器地址:8003/login`。没有超管时，已有的第一个账号会被设为超管；空账号库的第一个注册账号会成为超管。
 
-游戏登录授权还需要与服务公钥匹配的现有私钥：可放入挂载目录的 `private.key`，或将私钥挂载进容器并通过 `DNF_PRIVATE_KEY_PATH` 指向容器内的路径。独立平台不会自动生成与服务无关的密钥。
+想一次启动整套游戏服务？使用 [DNF 一体化服务的快速开始](https://github.com/onlyGuo/dnf#快速开始)。数据库连接和相应端口的防火墙策略请按自己的部署环境配置。
 
-容器首次启动时默认只添加缺失的数据库表和字段，不执行 `init.sql` 中的 `DROP` 或示例数据插入；设置 `DNF_DB_AUTO_INIT=false` 可关闭初始化。不要直接对已有数据库执行完整的 `init.sql`。
+## 选择部署方式
 
-## 与服务一起运行
+| 部署方式 | 可管理的内容 |
+| --- | --- |
+| 平台单独运行或单独使用 Docker | 连接数据库，管理账号、角色、邮件等数据库内容。 |
+| 平台和服务位于同一宿主机 | 发现服务目录和 Supervisor 后，还可以管理频道、PVF 和密钥。 |
+| 使用 DNF 一体化镜像 | 一个容器包含服务、数据库和平台，支持完整管理功能。 |
 
-平台与服务同机或同容器运行时，按以下路径发现服务：
+host 网络只共享网络，不会自动共享文件和进程；单独的平台容器需要额外访问服务目录及 Supervisor 才能管理服务进程，无需挂载 Docker socket。
 
-| 环境变量 | 用途 | 默认值 |
-| --- | --- | --- |
-| `DNF_GAME_DIR` | 服务运行目录，包含 `Script.pvf` 和游戏公钥 | `/home/neople/game` |
-| `DNF_DATA_DIR` | 服务持久化数据目录 | `/data` |
-| `DNF_SUPERVISORCTL` | 服务进程管理命令 | `/usr/local/bin/supervisorctl` |
-| `DNF_GATE_PRIVATE_KEY_PATH` | 非默认布局下原网关的私钥路径 | 按服务目录推断 |
-| `DNF_CHANNEL_DDNS_INTERVAL_MS` | 频道 DDNS 刷新间隔 | `10000` |
+## 功能预览
 
-管理进程需要具备访问这些目录和 Supervisor 的权限。集成服务镜像在宿主机网络模式下默认通过 **8003** 提供平台；桥接模式下容器内平台端口为 9001。更换 PVF 或密钥会断开受影响频道的在线玩家。
+<details>
+<summary>玩家、背包与邮件</summary>
 
-平台数据目录应持久化 `private.key`、`ImagePacks2` 和初始化标记。旧版 `data/imagepacks-uploads` 中的当前资源会在启动时尝试迁移到 `ImagePacks2`，旧目录不会自动删除。
+![角色管理](doc/screenshots/role-management.png)
+![角色背包与快捷栏](doc/screenshots/inventory-management.png)
+![发送邮件与选择物品](doc/screenshots/mail-items.png)
 
-## 从源码构建与宿主机运行
+</details>
+
+<details>
+<summary>PVF、登录器、客户端和数据库</summary>
+
+![PVF 管理](doc/screenshots/pvf-management.png)
+![登录器配置](doc/screenshots/launcher-settings.png)
+![版本管理](doc/screenshots/launcher-versions.png)
+![客户端配置](doc/screenshots/client-settings.png)
+![数据库管理](doc/screenshots/database-management.png)
+
+</details>
+
+## 使用说明
+
+- **密钥**：游戏登录使用与服务公钥匹配的私钥。独立部署时，将现有私钥放入 `platform-data/private.key`，或通过 `DNF_PRIVATE_KEY_PATH` 指定容器内路径。平台支持上传匹配的公私钥对或重新生成密钥。
+- **PVF 和图标**：平台读取服务目录的 `Script.pvf`。上传新 PVF 会更新服务文件并重启运行中的频道。图标来自 `data/ImagePacks2`；上传 ZIP 时，支持直接打包文件内容或包含 `ImagePacks2/` 文件夹。
+- **频道**：单个频道的地址变化只重启对应频道。默认地址变化会更新共用中继和 STUN，并重新加载相关进程。
+- **数据库**：独立平台容器首次启动默认补充缺失的表和字段；`DNF_DB_AUTO_INIT=false` 可关闭初始化。不要对已有数据库直接执行完整的 `init.sql`。
+- **权限**：`admin=2` 为超管，`1` 为 GM，`0` 为普通玩家；普通注册的权限由后台设置。编辑在线角色背包前请先退出游戏。
+
+平台数据目录建议持久化 `private.key`、`ImagePacks2` 和初始化标记。旧版 `data/imagepacks-uploads` 中的资源会在启动时尝试迁移到 `ImagePacks2`。
+
+## 宿主机运行与源码构建
 
 需要 Node.js 22、Java 17 或更高版本及 Maven：
 
@@ -131,38 +90,15 @@ cd ..
 mvn -Dmaven.test.skip=true package
 ```
 
-生成的 `target/dnf-server-0.0.1-SNAPSHOT.jar` 包含平台页面，默认监听 9001。构建不会将源码目录中的旧私钥文件打入新 JAR。
+平台和服务在同一宿主机运行时，可按实际位置设置以下环境变量：
 
-在服务所在宿主机运行时，可在项目目录中配置数据库和服务路径：
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `DNF_GAME_DIR` | `/home/neople/game` | 游戏服务目录 |
+| `DNF_DATA_DIR` | `/data` | 服务持久化目录 |
+| `DNF_SUPERVISORCTL` | `/usr/local/bin/supervisorctl` | 服务进程管理命令 |
+| `DNF_CHANNEL_DDNS_INTERVAL_MS` | `10000` | DDNS 刷新间隔 |
 
-```bash
-export SPRING_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/dnf_service?useUnicode=true&characterEncoding=utf8&autoReconnect=true'
-export SPRING_DATASOURCE_USERNAME='数据库用户名'
-export SPRING_DATASOURCE_PASSWORD='数据库密码'
-export DNF_GAME_DIR=/home/neople/game
-export DNF_DATA_DIR=/data
-export DNF_SUPERVISORCTL=/usr/local/bin/supervisorctl
-```
+配置数据库环境变量后，运行 `java -jar target/dnf-server-0.0.1-SNAPSHOT.jar`，访问 `http://服务器地址:9001/login`。直接运行 JAR 时需先准备平台数据库表和字段，可使用 `deploy/integrated/init_db.py` 生成增量 SQL。服务目录与 Supervisor 必须对平台进程可访问。
 
-按实际环境修改数据库地址、凭据和路径。将与游戏公钥匹配的现有私钥放到运行目录的 `data/private.key`，或通过 `DNF_PRIVATE_KEY_PATH` 指定。
-
-JAR 直接运行时不会执行 Docker 入口脚本的数据库初始化。首次安装且数据库尚未包含平台表和字段时，可使用 Python 3 与 MySQL 客户端生成增量 SQL，检查后应用。下面以本机 3306 和 `dnf_service` 数据库为例：
-
-```bash
-export DNF_DB_INIT_HOST=127.0.0.1 DNF_DB_INIT_PORT=3306 DNF_DB_INIT_NAME=dnf_service
-export DNF_DB_INIT_USER="$SPRING_DATASOURCE_USERNAME"
-export DNF_DB_INIT_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
-export DNF_INIT_SQL="$PWD/init.sql"
-python3 deploy/integrated/init_db.py > /tmp/dnf-platform-init.sql
-# 检查生成的 SQL 后执行：
-MYSQL_PWD="$DNF_DB_INIT_PASSWORD" mysql -h "$DNF_DB_INIT_HOST" -P "$DNF_DB_INIT_PORT" -u "$DNF_DB_INIT_USER" < /tmp/dnf-platform-init.sql
-unset DNF_DB_INIT_PASSWORD
-```
-
-准备好数据库、密钥及服务路径后启动，访问 `http://服务器地址:9001/login`：
-
-```bash
-java -jar target/dnf-server-0.0.1-SNAPSHOT.jar
-```
-
-本地模拟说明见 [deploy/local-sim/README.md](deploy/local-sim/README.md)，邮件通知细节见 [doc/online-mail.md](doc/online-mail.md)。
+本地模拟和集成说明分别见 [本地模拟](deploy/local-sim/README.md) 和 [服务集成](deploy/integrated/README.md)。已发布镜像见 [Docker Hub](https://hub.docker.com/r/guoshengkai/dnf-server)，架构为 `linux/amd64`。

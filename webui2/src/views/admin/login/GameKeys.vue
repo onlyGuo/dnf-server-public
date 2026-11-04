@@ -66,7 +66,7 @@ const apply = async (files?: KeyPairFiles) => {
 const confirmChange = (files?: KeyPairFiles) => {
   Modal.confirm({
     title: files ? '替换游戏公私钥对' : '重新生成游戏公私钥对',
-    content: '操作会同步管理平台和游戏服务的密钥，并重启正在运行的游戏频道和原网关，在线玩家会断开。请确认后继续。',
+    content: '操作会同步管理平台和游戏服务的密钥，并重启正在运行的游戏频道，在线玩家会断开。请确认后继续。',
     okText: files ? '替换公私钥' : '生成并替换',
     cancelText: '取消',
     onOk: () => { uploadVisible.value = false; void apply(files); }
@@ -125,7 +125,7 @@ onMounted(() => { void load(); });
             <a-tag v-if="!status.available" color="gray">未配置</a-tag>
             <a-tag v-else-if="!status.gameAvailable" color="blue">已读取私钥</a-tag>
             <a-tag v-else-if="status.matchesGame" color="green">与游戏公钥匹配</a-tag>
-            <a-tag v-else color="orange">游戏或网关密钥未同步</a-tag>
+            <a-tag v-else color="orange">游戏密钥未同步</a-tag>
           </div>
           <div class="key-label">私钥来源</div><div class="key-value">{{ status.source || '未配置' }}</div>
           <div class="key-label">密钥长度</div><div>{{ status.bits ? `${status.bits} 位` : '—' }}</div>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Host network: keep MySQL and Supervisor on loopback, and preserve the old
-# externally reachable 3000/2000 ports through narrowly scoped proxies.
+# externally reachable 3000/2000 ports through compatibility proxies.
 from __future__ import print_function
 import os
 import re

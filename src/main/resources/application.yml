@@ -35,8 +35,6 @@ logging:
 dnf:
   frontend-dir: ${DNF_FRONTEND_DIR:webui2/dist}
   private-key-path: ${DNF_PRIVATE_KEY_PATH:}
-  keys:
-    gateway-private-key-path: ${DNF_GATE_PRIVATE_KEY_PATH:}
   member:
     reset-enabled: ${DNF_MEMBER_RESET_ENABLED:true}
   channels:

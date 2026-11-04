@@ -56,7 +56,7 @@ const alertNotOpen = () => {
                     <a href="#" @click.prevent>游戏资源</a>
                     <ul>
                       <li><a target="_blank" href="https://github.com/onlyGuo/DNFLogin">登录器源码</a></li>
-                      <li><a target="_blank" href="https://github.com/onlyGuo/dnf-server-public">后台源码(GM+网关+本站)</a></li>
+                      <li><a target="_blank" href="https://github.com/onlyGuo/dnf-server-public">后台源码</a></li>
                     </ul>
                   </li>
 

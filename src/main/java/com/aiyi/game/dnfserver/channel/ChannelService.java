@@ -205,35 +205,20 @@ public class ChannelService {
         return available();
     }
 
-    public synchronized Boolean legacyGatewayRegistered() {
-        try {
-            return Pattern.compile("(?m)^\\s*tongyi_gate(?::tongyi_gate)?\\s+(RUNNING|STARTING|BACKOFF|STOPPED|STOPPING|EXITED|FATAL)\\b")
-                    .matcher(run(true, "status")).find();
-        } catch (Exception e) {
-            LOG.warn("无法读取原网关状态：{}", e.getMessage());
-            return null;
-        }
-    }
-
     @FunctionalInterface
-    public interface PvfInstallation {
+    public interface Installation {
         void install() throws Exception;
     }
 
-    public synchronized Map<String, Object> installPvfAndRestart(PvfInstallation installation) throws Exception {
-        return installAndRestart(gatewayRegistered -> installation.install(), false);
+    public synchronized Map<String, Object> installPvfAndRestart(Installation installation) throws Exception {
+        return installAndRestart(installation);
     }
 
-    @FunctionalInterface
-    public interface KeyInstallation {
-        void install(boolean gatewayRegistered) throws Exception;
+    public synchronized Map<String, Object> installKeyAndRestart(Installation installation) throws Exception {
+        return installAndRestart(installation);
     }
 
-    public synchronized Map<String, Object> installKeyAndRestart(KeyInstallation installation) throws Exception {
-        return installAndRestart(installation, true);
-    }
-
-    private Map<String, Object> installAndRestart(KeyInstallation installation, boolean includeGateway) throws Exception {
+    private Map<String, Object> installAndRestart(Installation installation) throws Exception {
         requireAvailable();
         String status = run(true, "status");
         Pattern game = Pattern.compile("(?m)^\\s*(dnf_channel:game_" + Pattern.quote(groupName()) +
@@ -248,12 +233,8 @@ public class ChannelService {
             }
         }
 
-        Matcher gateway = Pattern.compile("(?m)^\\s*(tongyi_gate(?::tongyi_gate)?)\\s+(RUNNING|STARTING|BACKOFF|STOPPED|STOPPING|EXITED|FATAL)\\b").matcher(status);
-        boolean gatewayRegistered = includeGateway && gateway.find();
-        if (gatewayRegistered && gateway.group(2).matches("RUNNING|STARTING|BACKOFF")) running.add(gateway.group(1));
-
         // Do not change any files until Supervisor has been checked and a restart plan exists.
-        installation.install(gatewayRegistered);
+        installation.install();
         List<String> restarted = new ArrayList<>();
         List<Map<String, String>> failed = new ArrayList<>();
         for (String process : running) {
