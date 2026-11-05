@@ -3,7 +3,7 @@
 The platform and the game service are separate projects. You can deploy the platform on its own or use the integrated service image:
 
 - Platform: `guoshengkai/dnf-server:latest`; the container listens on port 80 by default.
-- Service with the platform: `guoshengkai/dnf-server:dnf-integrated`; the platform listens on port 9001 in bridge mode and port 8003 in host-network mode by default.
+- Service with the platform: `guoshengkai/dnf:latest`; the platform listens on port 9001 in bridge mode and port 8003 in host-network mode by default.
 
 The published tags currently target `linux/amd64`. See the [project README](README.md) for standalone deployment and database configuration, and the [integration guide](deploy/integrated/README.md) for service networking, persistent data, and channel management.
 

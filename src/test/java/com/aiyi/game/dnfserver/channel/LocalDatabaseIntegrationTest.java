@@ -3,6 +3,7 @@ package com.aiyi.game.dnfserver.channel;
 import com.aiyi.game.dnfserver.dao.User;
 import com.aiyi.game.dnfserver.dao.PostalDao;
 import com.aiyi.game.dnfserver.entity.Postal;
+import com.aiyi.game.dnfserver.mail.OnlineMailNotificationService;
 import com.aiyi.game.dnfserver.pvf.PvfManager;
 import com.aiyi.game.dnfserver.task.MemberTask;
 import com.aiyi.game.dnfserver.utils.cache.UserTokenCacheUtil;
@@ -45,6 +46,7 @@ public class LocalDatabaseIntegrationTest {
     @Autowired private TestRestTemplate http;
     @Autowired private ApplicationContext application;
     @MockBean private PostalDao postalDao;
+    @MockBean private OnlineMailNotificationService mailNotifications;
     @MockBean private PvfManager pvfManager;
 
     @BeforeClass public static void setUpLocalGame() throws Exception {

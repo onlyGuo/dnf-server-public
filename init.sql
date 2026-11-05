@@ -141,4 +141,17 @@ CREATE TABLE `recharge_key` (
                                PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='充值卡密表';
 
+-- 在线邮件通知：与游戏邮件一起提交，避免重复投递。
+CREATE TABLE `dnf_mail_notification` (
+  `id` varchar(32) NOT NULL,
+  `character_id` int NOT NULL,
+  `server_group` smallint NOT NULL,
+  `state` smallint NOT NULL default 0,
+  `owner_id` varchar(32) default NULL,
+  `created_at` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  `claimed_at` timestamp NULL default NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_mail_notification_pending` (`server_group`, `state`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 SET FOREIGN_KEY_CHECKS = 1;

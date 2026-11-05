@@ -47,7 +47,7 @@ docker run -d --name dnf-platform --restart unless-stopped \
 
 ### 玩家、角色与邮件
 
-管理账号、角色属性、任务和游戏邮件；发送物品时可按名称、分类或 ID 查找，并查看物品属性。角色背包与快捷栏可以同时查看和编辑；编辑前需要退出游戏，避免游戏内存与数据库互相覆盖。
+管理账号、角色属性、任务和游戏邮件；发送物品时可按名称、分类或 ID 查找，并查看物品属性。受支持的一体化服务会向在线角色发送新邮件通知，无需重新选择角色。角色背包与快捷栏可以同时查看和编辑；编辑前需要退出游戏，避免游戏内存与数据库互相覆盖。
 
 ![角色管理](doc/screenshots/role-management.png)
 
@@ -94,14 +94,14 @@ docker run -d --name dnf-platform --restart unless-stopped \
 | 镜像 | 用途 | 已发布架构 |
 | --- | --- | --- |
 | `guoshengkai/dnf-server:latest` | 独立平台 | `linux/amd64` |
-| `guoshengkai/dnf-server:dnf-integrated` | 集成平台的服务 | `linux/amd64` |
+| `guoshengkai/dnf:latest` | 集成平台的服务 | `linux/amd64` |
 
 ```bash
 docker pull guoshengkai/dnf-server:latest
-docker pull guoshengkai/dnf-server:dnf-integrated
+docker pull guoshengkai/dnf:latest
 ```
 
-固定版本和发布信息见 [Docker Hub](https://hub.docker.com/r/guoshengkai/dnf-server)。集成镜像的完整 `docker run`、宿主机防火墙和新增频道端口示例见 [服务项目 README](https://github.com/onlyGuo/dnf) 和 [集成部署说明](deploy/integrated/README.md)。
+固定版本和发布信息见 Docker Hub 的[平台镜像](https://hub.docker.com/r/guoshengkai/dnf-server)和[一体化服务镜像](https://hub.docker.com/r/guoshengkai/dnf)。集成镜像的完整 `docker run`、宿主机防火墙和新增频道端口示例见 [服务项目 README](https://github.com/onlyGuo/dnf) 和 [集成部署说明](deploy/integrated/README.md)。
 
 ## 与服务一起运行
 

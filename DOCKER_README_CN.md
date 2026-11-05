@@ -3,7 +3,7 @@
 平台和服务可以分别部署，也可以使用集成镜像：
 
 - 平台：`guoshengkai/dnf-server:latest`，容器内默认访问端口为 80。
-- 集成平台的服务：`guoshengkai/dnf-server:dnf-integrated`，桥接网络下平台默认端口为 9001，宿主机网络下默认端口为 8003。
+- 集成平台的服务：`guoshengkai/dnf:latest`，桥接网络下平台默认端口为 9001，宿主机网络下默认端口为 8003。
 
 当前发布的两个标签均为 `linux/amd64`。平台单独部署、数据库环境变量和数据目录说明见 [项目 README](README.md)；集成镜像的网络、持久化及频道管理说明见 [集成部署文档](deploy/integrated/README.md)。
 

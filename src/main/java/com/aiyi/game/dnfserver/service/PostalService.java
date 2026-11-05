@@ -35,5 +35,5 @@ public interface PostalService {
      * @param postal
      *      邮件信息
      */
-    void sendMail(Postal postal);
+    String sendMail(Postal postal);
 }

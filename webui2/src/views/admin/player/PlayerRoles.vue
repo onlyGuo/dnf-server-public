@@ -252,8 +252,12 @@ const submitSendMail = async () => {
 		gold: mailForm.value.gold
 	};
 	try {
-		await Request.post("api/v1/postal", payload);
-		Message.success("发送成功, 重新选择角色即可查看邮件");
+		const response = await Request.post<{ notification: string }>("api/v1/postal", payload);
+		if (response.data?.notification === 'sent') {
+			Message.success("邮件已发送，并已通知游戏服务");
+		} else {
+			Message.warning("邮件已保存，在线提醒暂未确认；请稍后查看邮箱，必要时重新选择角色");
+		}
 		sendMailOption.value.open = false;
 	} catch (e: any) {
 		Message.error(e?.message || "发送失败");

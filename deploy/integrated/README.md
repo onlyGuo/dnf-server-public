@@ -25,6 +25,8 @@ sudo systemctl daemon-reload
 
 Web 自动检查当前进程可见的游戏目录、启动脚本和 Supervisor：安装在游戏宿主机上或与游戏同容器时可以管理频道；没有发现游戏服务时，用户、邮件等数据库功能仍可使用。`application.yml` 中的 `dnf.channels.data-dir`、`game-dir` 和 `supervisorctl` 可按本机目录调整，默认分别为 `/data`、`/home/neople/game` 和 `/usr/local/bin/supervisorctl`。单独运行的 Web 容器不会自动访问宿主机的目录或进程，也无需 Docker socket。数据库连接由环境变量提供，不在项目配置中保存实际密码。`DNF_CHANNEL_DDNS_INTERVAL_MS` 可调整轮询间隔，默认 10000 毫秒。
 
+受支持的一体化服务启动时，各启用频道会自动加载在线邮件通知组件，无需指定频道。向在线角色发送邮件后，游戏可立即收到新邮件通知；单独部署的平台连接同一数据库时，也可由一体化服务处理通知。
+
 使用原 DNF 的全局 DDNS 时，按原镜像配置 `DDNS_ENABLE=true`、`DDNS_DOMAIN`，并不要同时指定 `PUBLIC_IP`。每个频道还可单独选择默认地址、固定 IPv4 或解析为 IPv4 的 DDNS 域名；公共 relay 和 STUN 服务继续使用默认地址。独立 DDNS 解析失败时保留上次成功地址。地址改变时仅重启该频道的游戏进程；默认地址改变时，原 DNF 的监控脚本仍可能重启公共 bridge 和中央频道服务，在线玩家可能受到影响。
 
 Web 发现游戏服务后会自动接管默认通告地址，并保留原固定 IP 或 DDNS 配置及最后一次有效地址；无法读取原配置时会提示手动选择，避免覆盖未知设置。原地址监视脚本会保留备份，DDNS 解析失败时保留上次地址。默认地址变化会按原 DNF 流程重启 bridge、中央频道和所有已启用频道，以更新共用的 relay/STUN 地址；各频道独立的通告 IP 保持不变，不重启整个容器。宿主机路径与默认路径不同时，可用 `DNF_MONITOR_SCRIPT` 指定地址监视脚本。

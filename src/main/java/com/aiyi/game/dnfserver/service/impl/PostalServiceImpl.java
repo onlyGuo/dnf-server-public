@@ -15,6 +15,8 @@ import com.aiyi.game.dnfserver.entity.CharacInfo;
 import com.aiyi.game.dnfserver.entity.Postal;
 import com.aiyi.game.dnfserver.service.PostalService;
 import com.aiyi.game.dnfserver.security.OwnershipService;
+import com.aiyi.game.dnfserver.mail.OnlineMailNotificationService;
+import com.aiyi.game.dnfserver.mail.PostalWriteTransaction;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -48,6 +50,12 @@ public class PostalServiceImpl implements PostalService {
 
     @Resource
     private OwnershipService ownership;
+
+    @Resource
+    private OnlineMailNotificationService notifications;
+
+    @Resource
+    private PostalWriteTransaction postalWriter;
 
     @Override
     public ResultPage<Postal> list(String account, Date start,
@@ -83,8 +91,9 @@ public class PostalServiceImpl implements PostalService {
     }
 
     @Override
-    public void sendMail(Postal postal) {
+    public String sendMail(Postal postal) {
         postal.setSendCharacName("DNF Manager");
-        postalDao.add(postal);
+        boolean notify = notifications.ensureQueue();
+        return postalWriter.write(postal, notify);
     }
 }
