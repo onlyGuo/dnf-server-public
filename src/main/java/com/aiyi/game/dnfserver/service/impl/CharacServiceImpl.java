@@ -16,6 +16,7 @@ import com.aiyi.game.dnfserver.pvf.PvfManager;
 import com.aiyi.game.dnfserver.service.CharacService;
 import com.aiyi.game.dnfserver.service.PostalService;
 import com.aiyi.game.dnfserver.security.OwnershipService;
+import com.aiyi.game.dnfserver.quest.OnlineQuestBridge;
 import com.aiyi.game.dnfserver.utils.ChinaseUtil;
 import com.xiaoyouma.dnf.parser.pvf.model.Pvf;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,9 @@ public class CharacServiceImpl implements CharacService {
 
     @Resource
     private OwnershipService ownership;
+
+    @Resource
+    private OnlineQuestBridge onlineQuests;
 
     @Override
     public ResultPage<CharacInfo> list(Integer levMin, Integer levMax, Integer job,
@@ -152,11 +156,18 @@ public class CharacServiceImpl implements CharacService {
     }
 
     @Override
-    public void overTasks(Long characId) {
-        ownership.requireCharacter(characId);
-        List<TaskVO> tasks = listNoOverTasks(characId);
+    public synchronized void overTasks(Long characId) {
+        CharacInfo character = ownership.requireCharacter(characId);
+        Map<String, Object> snapshot = onlineQuests.snapshot(character);
+        List<TaskVO> tasks = snapshot == null ? listNoOverTasks(characId) : parseTasks(Collections.singletonList(snapshot));
+        if (snapshot != null) {
+            List<Integer> direct = tasks.stream().filter(task -> task.getType().isCatFinish())
+                    .map(TaskVO::getId).collect(Collectors.toList());
+            onlineQuests.complete(character, snapshot, direct);
+        }
         tasks.forEach(task -> {
             if (task.getType().isCatFinish()){
+                if (snapshot != null) return;
                 // 直接完成
                 characInfoDao.execute("UPDATE `taiwan_cain`.`new_charac_quest` SET play_" + task.getNo() +
                         "_trigger = 0 WHERE charac_no = ?", characId);
@@ -181,6 +192,10 @@ public class CharacServiceImpl implements CharacService {
         if (maps.isEmpty()){
             return new ArrayList<>();
         }
+        return parseTasks(maps);
+    }
+
+    private List<TaskVO> parseTasks(List<Map<String, Object>> maps) {
         Pvf pvf = pvfManager.getPvf();
         if (pvf == null) throw new IllegalArgumentException("游戏服务中未配置可解析的 Script.pvf，无法读取任务资料");
         JSONObject questList = pvf.getScript("n_quest/quest.lst");
@@ -193,13 +208,13 @@ public class CharacServiceImpl implements CharacService {
                     TaskVO taskVO = new TaskVO();
                     taskVO.setId(taskId);
                     taskVO.setNo(i);
-                    tasks.add(taskVO);
                     if (!questList.containsKey(taskId + "")){
-                        continue;
+                        throw new IllegalArgumentException("PVF 中找不到任务 " + taskId + "，请先同步服务的 PVF");
                     }
                     JSONObject script = pvf.getScript("n_quest/" + questList.getStr(taskId + ""));
                     String typeStr = script.getJSONArray("[type]").getStr(0);
                     taskVO.setType(TaskType.forType(typeStr));
+                    tasks.add(taskVO);
                     if (!taskVO.getType().isCatFinish()){
                         List<TaskItemVO> taskItemS = new ArrayList<>();
                         JSONArray jsonArray = script.getJSONArray("[int data]");

@@ -119,6 +119,10 @@ static unsigned int server_group;
 static struct timeval last_check, last_ready;
 static int initialized;
 
+#ifndef DNF_MAIL_FAKE_GAME
+#include "quest_actions.h"
+#endif
+
 static int interval_elapsed(const struct timeval *now, const struct timeval *last, long interval_us) {
     if (now->tv_sec < last->tv_sec) return 1;
     if (now->tv_sec == last->tv_sec) return now->tv_usec - last->tv_usec >= interval_us;
@@ -206,6 +210,9 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struc
             if (get_monitor_proxy(server_group)) {
                 if (interval_elapsed(&now, &last_ready, 1000000)) { touch_ready(); last_ready = now; }
                 process_requests(mail_dir, server_group, notify_game);
+#ifndef DNF_MAIL_FAKE_GAME
+                process_quest_requests();
+#endif
             }
         }
     }

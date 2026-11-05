@@ -267,12 +267,12 @@ const submitSendMail = async () => {
 const overTasks = (characNo: number) => {
 	Modal.confirm({
 		title: "提示",
-		content: "确定要完成该角色的所有任务吗？",
+		content: "将已接任务推进到可交付状态，收集类任务通过邮件补发材料。在线角色会实时更新任务进度。确定继续吗？",
 		okText: "确定",
 		cancelText: "取消",
 		onOk: async () => {
 			try {
-				await Request.post(`api/v1/charac/${characNo}/overTasks`);
+				await Request.post(`api/v1/charac/${characNo}/overTasks`, null, { timeout: 20000 });
 				Message.success("操作成功!");
 			} catch (e: any) {
 				Message.error(e?.message || "操作失败");
